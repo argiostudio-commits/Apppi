@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgendaPro - Optimización de Clases</title>
+    <style>
+        :root {
+            --primary: #4F46E5; --primary-hover: #4338CA;
+            --bg: #F3F4F6; --card-bg: #FFFFFF; --text: #1F2937;
+            --success: #10B981; --warning: #F59E0B; --danger: #EF4444;
+            --border: #E5E7EB;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Navegación */
+        header { background: var(--primary); color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        nav { display: flex; gap: 0.5rem; overflow-x: auto; flex-wrap: wrap; }
+        nav button { background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer; font-weight: bold; white-space: nowrap; font-size: 0.9rem; }
+        nav button:hover, nav button.active { background: white; color: var(--primary); }
+        
+        /* Layout Principal */
+        main { flex: 1; padding: 1rem; overflow-y: auto; }
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 1rem; }
+            nav { width: 100%; justify-content: center; }
+            .grid-cards { grid-template-columns: 1fr; }
+            .calendar-container { height: 50vh; }
+            .flex-between { flex-direction: column; gap: 1rem; align-items: stretch; }
+            table { font-size: 0.8rem; }
+            th, td { padding: 0.5rem; }
+            .card { padding: 1rem; }
+        }
+        
+        /* Dashboard & Tarjetas */
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .card { background: var(--card-bg); padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h3 { font-size: 0.9rem; color: #6B7280; margin-bottom: 0.5rem; }
+        .card .value { font-size: 1.8rem; font-weight: bold; }
+        
+        /* Oportunidades */
+        .oportunidades li { padding: 0.75rem; border-left: 4px solid var(--warning); background: #FEF3C7; margin-bottom: 0.5rem; border-radius: 0 4px 4px 0; list-style: none; }
+        
+        /* Botones y Formularios */
+        .btn { background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 500; }
+        .btn-danger { background: var(--danger); }
+        .btn-success { background: var(--success); }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        input, select, textarea { width: 100%; padding: 0.5rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 4px; }
+        
+        /* Agenda / Calendario */
+        .calendar-container { background: var(--card-bg); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow-x: auto; height: 70vh; }
+        .cal-header { display: grid; grid-template-columns: 60px repeat(5, 1fr); border-bottom: 1px solid var(--border); background: #F9FAFB; position: sticky; top: 0; z-index: 10; min-width: 600px; }
+        .cal-header div { padding: 0.5rem; text-align: center; font-weight: bold; border-right: 1px solid var(--border); }
+        .cal-body { display: grid; grid-template-columns: 60px repeat(5, 1fr); flex: 1; position: relative; overflow-y: auto; min-width: 600px; }
+        .cal-times { display: flex; flex-direction: column; border-right: 1px solid var(--border); background: #F9FAFB; }
+        .cal-time-slot { height: 60px; padding: 0.25rem; font-size: 0.8rem; text-align: right; color: #6B7280; border-bottom: 1px solid var(--border); }
+        .cal-day { position: relative; border-right: 1px solid var(--border); background: repeating-linear-gradient(to bottom, transparent, transparent 59px, var(--border) 60px); }
+        
+        /* Bloque de Clase en Agenda */
+        .class-block { position: absolute; left: 2%; width: 96%; background: var(--primary); color: white; border-radius: 4px; padding: 0.25rem; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.1s; }
+        .class-block:hover { transform: scale(1.02); z-index: 5; }
+        .class-block.blocked { border: 2px solid #000; background: #374151; }
+        
+        /* Tablas */
+        table { width: 100%; border-collapse: collapse; background: var(--card-bg); }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #F9FAFB; }
+        
+        /* Modales */
+        dialog { margin: auto; padding: 2rem; border-radius: 8px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 500px; width: 90%; }
+        dialog::backdrop { background: rgba(0,0,0,0.5); }
+        
+        /* Utilidades */
+        .flex-between { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .badge { padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: bold; }
+        .bg-green { background: #D1FAE5; color: #065F46; }
+        .bg-red { background: #FEE2E2; color: #991B1B; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h2>AgendaPro 📚</h2>
+        </div>
+        <nav>
+            <button class="active" onclick="navigate('dashboard')">Dashboard</button>
+            <button onclick="navigate('agenda')">Agenda</button>
+            <button onclick="navigate('alumnos')">Alumnos</button>
+            <button onclick="navigate('simulador')">Simular / Optimizar</button>
+            <button onclick="navigate('config')">Config</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="view active">
+            <div class="flex-between">
+                <h2>Resumen General</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="app.importData(event)">
+                    <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">⬆️ Importar Backup</button>
+                    <button class="btn" onclick="app.exportData()">⬇️ Exportar Backup</button>
+                </div>
+            </div>
+            
+            <div class="grid-cards">
+                <div class="card"><h3>Ingresos Proyectados (Mes)</h3><div class="value" id="dash-ingresos">$0</div></div>
+                <div class="card"><h3>Alumnos Activos</h3><div class="value" id="dash-alumnos">0</div></div>
+                <div class="card"><h3>Horas Ocupadas (Semana)</h3><div class="value" id="dash-horas">0h</div></div>
+                <div class="card"><h3>Pagos Vencidos</h3><div class="value" id="dash-pagos" style="color: var(--danger)">0</div></div>
+                <div class="card"><h3>Total Cobrado</h3><div class="value" id="dash-total-cobrado">$0</div></div>
+                <div class="card"><h3>Ocupación</h3><div class="value" id="dash-ocupacion">0%</div></div>
+            </div>
+
+            <div class="card">
+                <h3>💡 Oportunidades y Alertas</h3>
+                <ul class="oportunidades" id="dash-oportunidades">
+                    <!-- Dinámico -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- AGENDA -->
+        <section id="agenda" class="view">
+            <div class="flex-between">
+                <h2>Agenda Semanal · Plantilla Habitual</h2>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn btn-success" onclick="UI.abrirModalClase()">+ Nueva Clase</button>
+                    <button class="btn btn-outline" onclick="UI.renderAgenda()">🔄 Refrescar</button>
+                </div>
+            </div>
+
+            <div class="calendar-container">
+                <div class="cal-header">
+                    <div>Hora</div>
+                    <div>Lunes</div><div>Martes</div><div>Miércoles</div><div>Jueves</div><div>Viernes</div>
+                </div>
+                <div class="cal-body" id="cal-body">
+                    <!-- Contenido generado por JS -->
+                </div>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.9rem; color: #666;">* Haz clic en una clase para ver detalles, moverla o bloquearla.</p>
+        </section>
+
+        <!-- ALUMNOS -->
+        <section id="alumnos" class="view">
+            <div class="flex-between">
+                <h2>Gestión de Alumnos</h2>
+                <button class="btn btn-success" onclick="app.abrirModalAlumno()">+ Nuevo Alumno</button>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <input type="text" id="busqueda-alumnos" placeholder="🔍 Buscar alumno por nombre..." oninput="UI.renderTablaAlumnos()">
+            </div>
+            
+            <div style="overflow-x: auto; background: white; border-radius: 8px;">
+                <table id="tabla-alumnos">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th>Prioridad</th>
+                            <th>Frecuencia</th>
+                            <th>Precio</th>
+                            <th>Estado Pago</th>
+                            <th>Último Pago</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SIMULADOR Y OPTIMIZADOR -->
+        <section id="simulador" class="view">
+            <h2>Herramientas Inteligentes</h2>
+            
+            <div class="grid-cards" style="margin-top: 1rem;">
+                <div class="card">
+                    <h3>🪄 Optimizar Agenda Actual</h3>
+                    <p style="font-size: 0.9rem; margin-bottom: 1rem;">Compara la agenda actual con una propuesta global, respetando todas las restricciones duras y considerando el costo de reorganización.</p>
+                    <button class="btn" onclick="app.optimizer.runAndPropose()">Ejecutar Optimizador</button>
+                    <button class="btn btn-outline" id="btn-deshacer" style="display:none;" onclick="app.optimizer.undo()">↩️ Deshacer Última</button>
+                </div>
+
+                <div class="card">
+                    <h3>🎯 Evaluar Nuevo Prospecto</h3>
+                    <p style="font-size: 0.9rem; margin-bottom: 1rem;">Analiza si un nuevo alumno puede ingresar, si conviene, y a quién habría que mover.</p>
+                    <button class="btn btn-success" onclick="document.getElementById('modal-simulador').showModal()">Simular Ingreso</button>
+                </div>
+            </div>
+
+            <div id="resultado-optimizacion" style="display:none; margin-top: 2rem; padding: 1.5rem; background: #EEF2FF; border-radius: 8px; border: 1px solid var(--primary);">
+                <h3>📊 Propuesta del Algoritmo</h3>
+                <div id="opt-explicacion" style="margin: 1rem 0; font-size: 0.95rem;"></div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-success" onclick="app.optimizer.applyProposal()">Aplicar Cambios</button>
+                    <button class="btn btn-danger" onclick="document.getElementById('resultado-optimizacion').style.display='none'">Descartar</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- CONFIGURACIÓN -->
+        <section id="config" class="view">
+            <h2>Configuración de la Profesora</h2>
+            <div class="card" style="max-width: 600px; margin-top: 1rem;">
+                <label>Hora de Inicio Jornada (ej. 08:00)</label>
+                <input type="time" id="cfg-start" value="09:00">
+
+                <label>Hora Fin Jornada (ej. 21:00)</label>
+                <input type="time" id="cfg-end" value="20:00">
+
+                <label>Tiempo de descanso entre clases (minutos)</label>
+                <input type="number" id="cfg-gap" value="0" min="0">
+
+                <label>Objetivo Principal de Optimización</label>
+                <select id="cfg-peso" onchange="app.toggleConfigPersonalizado()">
+                    <option value="revenue">Priorizar Ingresos (Mover alumnos que pagan menos si es necesario)</option>
+                    <option value="loyalty">Priorizar Antigüedad (Proteger alumnos históricos)</option>
+                    <option value="compact">Priorizar Agenda Compacta (Reducir huecos muertos)</option>
+                    <option value="personalizado">Configuración Personalizada</option>
+                </select>
+
+                <div id="cfg-personalizado" style="display:none; margin-top: 1rem; padding: 1rem; background: #F3F4F6; border-radius: 8px;">
+                    <h4>Factores de Prioridad Personalizados</h4>
+                    <label>Peso de Ingresos (0-100)</label>
+                    <input type="number" id="cfg-peso-ingresos" value="70" min="0" max="100">
+
+                    <label>Peso de Antigüedad (0-100)</label>
+                    <input type="number" id="cfg-peso-antiguedad" value="50" min="0" max="100">
+
+                    <label>Peso de Prioridad Manual (0-100)</label>
+                    <input type="number" id="cfg-peso-prioridad" value="80" min="0" max="100">
+
+                    <label>Peso de Compactación (0-100)</label>
+                    <input type="number" id="cfg-peso-compacto" value="30" min="0" max="100">
+                </div>
+
+                <label>Máximo de Clases por Día</label>
+                <input type="number" id="cfg-max-clases-dia" value="10" min="1">
+
+                <label>Máximo de Horas por Día</label>
+                <input type="number" id="cfg-max-horas-dia" value="8" min="1">
+
+                <label>Máximo de Clases por Semana</label>
+                <input type="number" id="cfg-max-clases-semana" value="40" min="1">
+
+                <label>Máximo de Horas por Semana</label>
+                <input type="number" id="cfg-max-horas-semana" value="40" min="1">
+
+                <h3>Horarios por Día</h3>
+                <div id="config-dias-container" style="margin-top: 1rem;">
+                    <!-- Se generará dinámicamente -->
+                </div>
+
+                <h3>Horarios Bloqueados (Opcional)</h3>
+                <textarea id="cfg-bloqueados" rows="2" placeholder="Formato: Lunes 12:00-13:00, Viernes 15:00-17:00"></textarea>
+
+                <h3>Horarios Preferidos (Opcional)</h3>
+                <textarea id="cfg-preferidos" rows="2" placeholder="Formato: Lunes 17:00-20:00, Martes 18:00-21:00"></textarea>
+
+                <button class="btn" onclick="app.saveConfig()">Guardar Configuración</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modales Omitidos en HTML visual pero manejados en JS para simplificar código visual -->
+    <dialog id="modal-alumno">
+        <h3>Datos del Alumno</h3>
+        <form method="dialog" id="form-alumno" onsubmit="app.saveAlumno(event)">
+            <input type="hidden" id="al-id">
+            <input type="text" id="al-nombre" placeholder="Nombre completo" required oninput="app.validarAlumno()">
+            <input type="number" id="al-precio" placeholder="Precio por clase ($)" required min="0" oninput="app.validarAlumno()">
+            <input type="number" id="al-duracion" placeholder="Duración clase (minutos, ej: 60)" value="60" required min="15" oninput="app.validarAlumno()">
+            <input type="number" id="al-clases" placeholder="Clases por semana" value="2" required min="1" oninput="app.validarAlumno()">
+            
+            <label>Estado del Alumno</label>
+            <select id="al-estado">
+                <option value="actual">Actual</option>
+                <option value="nuevo">Nuevo (Prospecto)</option>
+                <option value="inactivo">Inactivo</option>
+            </select>
+            
+            <label>Prioridad</label>
+            <select id="al-prioridad">
+                <option value="1">Normal</option>
+                <option value="2">Alta Prioridad</option>
+                <option value="99">No Mover (Bloqueado)</option>
+            </select>
+            
+            <h4>Disponibilidad (Selección múltiple simplificada)</h4>
+            <textarea id="al-disponibilidad" rows="3" placeholder="Formato: Lunes 17:00-20:00, Miercoles 16:00-18:00" oninput="app.validarDisponibilidad()"></textarea>
+            <div id="disp-errores" style="color: var(--danger); font-size: 0.85rem; margin-bottom: 0.5rem;"></div>
+            
+            <h4>Indisponibilidad Temporal (Opcional)</h4>
+            <textarea id="al-indisponibilidad" rows="2" placeholder="Formato: Lunes 15:00-16:00, Viernes 19:00-21:00"></textarea>
+            
+            <h4>Horarios Ideales (Opcional)</h4>
+            <textarea id="al-horarios-ideales" rows="2" placeholder="Formato: Lunes 17:00-19:00, Martes 18:00-20:00"></textarea>
+
+            <h4>📝 Notas</h4>
+            <textarea id="al-notas" rows="5" placeholder="Objetivos, dificultades, temas que está trabajando, observaciones, preferencias, tareas pendientes..."></textarea>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-success">Guardar</button>
+                <button type="button" class="btn btn-danger" onclick="app.cancelarAlumno()">Cancelar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="modal-simulador">
+        <h3>Simular Nuevo Alumno</h3>
+        <form method="dialog" id="form-simulador" onsubmit="app.simularAlumno(event)">
+            <input type="text" id="sim-nombre" placeholder="Nombre del prospecto" required>
+            <input type="number" id="sim-precio" placeholder="Precio por clase ($)" required>
+            <input type="number" id="sim-duracion" placeholder="Duración clase (minutos)" value="60" required>
+            <input type="number" id="sim-clases" placeholder="Clases por semana" value="2" required>
+            
+            <h4>Disponibilidad del Prospecto</h4>
+            <textarea id="sim-disponibilidad" rows="3" placeholder="Formato: Lunes 17:00-20:00, Miercoles 16:00-18:00" required></textarea>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-success">Simular</button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('modal-simulador').close()">Cancelar</button>
+            </div>
+        </form>
+        
+        <div id="resultado-simulacion" style="display:none; margin-top: 1rem; padding: 1rem; background: #EEF2FF; border-radius: 8px; border: 1px solid var(--primary);">
+            <h4>📊 Resultado de Simulación</h4>
+            <div id="sim-explicacion" style="margin: 0.5rem 0; font-size: 0.9rem;"></div>
+        </div>
+    </dialog>
+
+    <dialog id="modal-clase">
+        <h3>Crear/Editar Clase</h3>
+        <form method="dialog" id="form-clase" onsubmit="app.saveClase(event)">
+            <input type="hidden" id="cl-id">
+            
+            <label>Alumno</label>
+            <select id="cl-alumno" required>
+                <option value="">Seleccionar alumno...</option>
+            </select>
+            
+            <label>Día</label>
+            <select id="cl-dia" required>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+            </select>
+            
+            <label>Hora Inicio</label>
+            <input type="time" id="cl-inicio" required>
+            
+            <label>Hora Fin</label>
+            <input type="time" id="cl-fin" required>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-success">Guardar</button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('modal-clase').close()">Cancelar</button>
+            </div>
+        </form>
+    </dialog>
+
+<script>
+/**
+ * NÚCLEO DE LA APLICACIÓN (AgendaPro)
+ * Lógica pura, estado, persistencia y algoritmos.
+ */
+const AppCore = {
+    state: {
+        alumnos: [],
+        clases: [],
+        cancelaciones: [], // Clases puestas en agenda
+        config: {
+            horaInicio: 9*60,
+            horaFin: 20*60,
+            gap: 0,
+            pesoEstrategia: 'revenue',
+            maxClasesPorDia: 10,
+            maxHorasPorDia: 8,
+            maxClasesPorSemana: 40,
+            maxHorasPorSemana: 40,
+            pesosPersonalizados: {
+                ingresos: 70,
+                antiguedad: 50,
+                prioridad: 80,
+                compacto: 30
+            },
+            configuracionPorDia: {
+                1: { disponible: true, inicio: 9*60, fin: 20*60 }, // Lunes
+                2: { disponible: true, inicio: 9*60, fin: 20*60 }, // Martes
+                3: { disponible: true, inicio: 9*60, fin: 20*60 }, // Miércoles
+                4: { disponible: true, inicio: 9*60, fin: 20*60 }, // Jueves
+                5: { disponible: true, inicio: 9*60, fin: 20*60 }  // Viernes
+            },
+            horariosBloqueados: [],
+            horariosPreferidos: []
+        },
+        backupAnterior: null, // Para deshacer
+    },
+
+    init() {
+        this.loadData();
+        if (this.cargarFormularioConfig) this.cargarFormularioConfig();
+        UI.renderDashboard();
+    },
+
+    // --- UTILIDADES DE TIEMPO ---
+    // Convierte "17:30" a 1050 (minutos desde las 00:00)
+    timeToMins(timeStr) {
+        if(!timeStr) return 0;
+        let [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + (m || 0);
+    },
+    // Convierte 1050 a "17:30"
+    minsToTime(mins) {
+        let h = Math.floor(mins / 60);
+        let m = mins % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    },
+
+    // Parseador rústico pero efectivo para la disponibilidad textual de la profesora (NLP básico)
+    parseDisponibilidad(texto) {
+        if (!texto) return [];
+        const diasMap = { 'lunes': 1, 'martes': 2, 'miercoles': 3, 'miércoles': 3, 'jueves': 4, 'viernes': 5 };
+        let disponibilidades = [];
+        let tramos = texto.toLowerCase().split(',');
+        tramos.forEach(tramo => {
+            for (let dia in diasMap) {
+                if (tramo.includes(dia)) {
+                    let horas = tramo.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+                    if (horas) {
+                        disponibilidades.push({
+                            dia: diasMap[dia],
+                            inicio: this.timeToMins(horas[1]),
+                            fin: this.timeToMins(horas[2])
+                        });
+                    }
+                }
+            }
+        });
+        return disponibilidades;
+    },
+
+    // --- PERSISTENCIA ---
+    saveData() {
+        localStorage.setItem('agendaProData', JSON.stringify(this.state));
+        UI.renderDashboard();
+    },
+    normalizeState() {
+        if (!this.state.alumnos) this.state.alumnos = [];
+        if (!this.state.clases) this.state.clases = [];
+        if (!this.state.cancelaciones) this.state.cancelaciones = [];
+        if (!this.state.historialMovimientos) this.state.historialMovimientos = [];
+        this.state.alumnos.forEach(a => {
+            a.dispParsed = this.parseDisponibilidad(a.disponibilidadTexto);
+            a.indispParsed = this.parseDisponibilidad(a.indisponibilidadTexto);
+            a.idealesParsed = this.parseDisponibilidad(a.horariosIdealesTexto);
+            if (!a.pagos) a.pagos = [];
+            if (typeof a.notas !== 'string') a.notas = '';
+        });
+    },
+
+    haySolape(inicioA, finA, inicioB, finB, gap) {
+        gap = parseInt(gap) || 0;
+        return inicioA < (finB + gap) && finA > (inicioB - gap);
+    },
+
+    loadData() {
+        let data = localStorage.getItem('agendaProData');
+        if (data) {
+            this.state = JSON.parse(data);
+            this.normalizeState();
+            // Agenda semanal fija: cualquier offset histórico deja de tener efecto.
+            delete this.state.semanaActual;
+            // Asegurar que la configuración exista
+            if(!this.state.config) {
+                this.state.config = {
+                    horaInicio: 9*60,
+                    horaFin: 20*60,
+                    gap: 0,
+                    pesoEstrategia: 'revenue',
+                    maxClasesPorDia: 10,
+                    maxHorasPorDia: 8,
+                    maxClasesPorSemana: 40,
+                    maxHorasPorSemana: 40,
+                    pesosPersonalizados: {
+                        ingresos: 70,
+                        antiguedad: 50,
+                        prioridad: 80,
+                        compacto: 30
+                    }
+                };
+            } else {
+                // Asegurar que los nuevos campos existan (para compatibilidad con backups antiguos)
+                if(this.state.config.maxClasesPorDia === undefined) this.state.config.maxClasesPorDia = 10;
+                if(this.state.config.maxHorasPorDia === undefined) this.state.config.maxHorasPorDia = 8;
+                if(this.state.config.maxClasesPorSemana === undefined) this.state.config.maxClasesPorSemana = 40;
+                if(this.state.config.maxHorasPorSemana === undefined) this.state.config.maxHorasPorSemana = 40;
+                if(!this.state.config.pesosPersonalizados) {
+                    this.state.config.pesosPersonalizados = {
+                        ingresos: 70,
+                        antiguedad: 50,
+                        prioridad: 80,
+                        compacto: 30
+                    };
+                }
+                if(!this.state.config.configuracionPorDia) {
+                    this.state.config.configuracionPorDia = {
+                        1: { disponible: true, inicio: 9*60, fin: 20*60 },
+                        2: { disponible: true, inicio: 9*60, fin: 20*60 },
+                        3: { disponible: true, inicio: 9*60, fin: 20*60 },
+                        4: { disponible: true, inicio: 9*60, fin: 20*60 },
+                        5: { disponible: true, inicio: 9*60, fin: 20*60 }
+                    };
+                }
+                if(!this.state.config.horariosBloqueados) {
+                    this.state.config.horariosBloqueados = [];
+                    this.state.config.horariosBloqueadosTexto = '';
+                }
+                if(!this.state.config.horariosPreferidos) {
+                    this.state.config.horariosPreferidos = [];
+                    this.state.config.horariosPreferidosTexto = '';
+                }
+            }
+        } else {
+            // Datos demo para probar
+            this.state.alumnos = [
+                { id: 1, nombre: 'María Lopez', precio: 5000, duracion: 60, frecuencia: 2, estado: 'actual', prioridad: 1, disponibilidadTexto: 'Lunes 17:00-19:00, Miercoles 17:00-19:00', pagosVencidos: false, antiguedad: 24, pagos: [] },
+                { id: 2, nombre: 'Pedro Gomez', precio: 8000, duracion: 90, frecuencia: 1, estado: 'actual', prioridad: 99, disponibilidadTexto: 'Viernes 18:00-20:00', pagosVencidos: true, antiguedad: 2, pagos: [] }
+            ];
+            this.state.alumnos.forEach(a => a.dispParsed = this.parseDisponibilidad(a.disponibilidadTexto));
+            this.normalizeState();
+        }
+    },
+    exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state));
+        const dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", "agendapro_backup.json");
+        dlAnchorElem.click();
+    },
+
+    importData(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                
+                // Validar estructura básica
+                if(!importedData.alumnos || !importedData.clases || !importedData.config) {
+                    alert('El archivo no tiene el formato correcto de backup de AgendaPro.');
+                    return;
+                }
+                
+                if(confirm('¿Estás seguro de importar este backup? Se reemplazarán todos los datos actuales.')) {
+                    this.state = importedData;
+                    this.normalizeState();
+                    this.saveData();
+                    alert('Backup importado exitosamente.');
+                    UI.renderDashboard();
+                }
+            } catch(error) {
+                alert('Error al leer el archivo: ' + error.message);
+            }
+        };
+        reader.readAsText(file);
+        
+        // Limpiar el input para permitir importar el mismo archivo nuevamente
+        event.target.value = '';
+    },
+
+    // --- CORE OPTIMIZADOR ---
+    optimizer: {
+        propuesta: null,
+
+        // Pesos centrales del score global. Se pueden ajustar sin tocar el motor.
+        pesosScore: {
+            ingresos: 35,
+            conservacion: 25,
+            antiguedad: 10,
+            confiabilidad: 8,
+            utilizacion: 7,
+            huecos: 6,
+            concentracion: 4,
+            horariosIdeales: 3,
+            preferenciasProfesora: 2,
+            flexibilidad: 1,
+            costoCambio: 18
+        },
+
+        umbralMejora: 0.75,
+        maxIteraciones: 250,
+        maxVecinos: 100,
+
+        clonarAgenda(agenda) {
+            return agenda.map(c => ({...c}));
+        },
+
+        alumno(id) {
+            return AppCore.state.alumnos.find(a => a.id == id);
+        },
+
+        prepararAlumno(alumno) {
+            if (!alumno) return null;
+            if (!alumno.dispParsed?.length) alumno.dispParsed = AppCore.parseDisponibilidad(alumno.disponibilidadTexto || '');
+            if (!alumno.indispParsed) alumno.indispParsed = AppCore.parseDisponibilidad(alumno.indisponibilidadTexto || '');
+            if (!alumno.idealesParsed) alumno.idealesParsed = AppCore.parseDisponibilidad(alumno.horariosIdealesTexto || '');
+            return alumno;
+        },
+
+        esDisponibleAlumno(alumno, dia, inicio, fin) {
+            this.prepararAlumno(alumno);
+            if (!alumno || !(alumno.dispParsed || []).some(d =>
+                d.dia === dia && inicio >= d.inicio && fin <= d.fin
+            )) return false;
+
+            return !(alumno.indispParsed || []).some(d =>
+                d.dia === dia && AppCore.haySolape(inicio, fin, d.inicio, d.fin, 0)
+            );
+        },
+
+        esHorarioProfesoraValido(dia, inicio, fin) {
+            const cfg = AppCore.state.config;
+            if (inicio < cfg.horaInicio || fin > cfg.horaFin) return false;
+
+            const diaCfg = cfg.configuracionPorDia?.[dia];
+            if (diaCfg && (!diaCfg.disponible || inicio < diaCfg.inicio || fin > diaCfg.fin)) return false;
+
+            return !(cfg.horariosBloqueados || []).some(b =>
+                b.dia === dia && AppCore.haySolape(inicio, fin, b.inicio, b.fin, 0)
+            );
+        },
+
+
+        validarMovimientoClase(clase, nuevo, agenda = AppCore.state.clases) {
+            const alumno = this.prepararAlumno(this.alumno(clase.alumnoId));
+            if (!alumno) return { valido:false, motivo:'No se encontró el alumno.' };
+
+            const durOriginal = clase.fin - clase.inicio;
+            const durNueva = nuevo.fin - nuevo.inicio;
+            if (durNueva !== durOriginal) {
+                return { valido:false, motivo:'La duración de la clase no puede modificarse al moverla.' };
+            }
+
+            if (!this.esDisponibleAlumno(alumno, nuevo.dia, nuevo.inicio, nuevo.fin)) {
+                const disponible = (alumno.dispParsed || []).some(d =>
+                    d.dia === nuevo.dia && nuevo.inicio >= d.inicio && nuevo.fin <= d.fin
+                );
+                return {
+                    valido:false,
+                    motivo: disponible
+                        ? 'El alumno tiene una indisponibilidad en ese horario.'
+                        : 'El alumno no está disponible en ese horario.'
+                };
+            }
+
+            if (!this.esHorarioProfesoraValido(nuevo.dia, nuevo.inicio, nuevo.fin)) {
+                const cfg = AppCore.state.config;
+                const dc = cfg.configuracionPorDia?.[nuevo.dia];
+                const bloqueado = (cfg.horariosBloqueados || []).some(b =>
+                    b.dia === nuevo.dia && AppCore.haySolape(nuevo.inicio,nuevo.fin,b.inicio,b.fin,0)
+                );
+                let motivo = 'El horario está fuera del horario laboral de la profesora.';
+                if (dc && !dc.disponible) motivo = 'La profesora no trabaja ese día.';
+                else if (dc && (nuevo.inicio < dc.inicio || nuevo.fin > dc.fin)) motivo = 'El horario está fuera del horario laboral configurado para ese día.';
+                else if (bloqueado) motivo = 'El horario está bloqueado.';
+                return { valido:false, motivo };
+            }
+
+            const resto = agenda.filter(c => c.id !== clase.id);
+            if (resto.some(otra =>
+                otra.dia === nuevo.dia &&
+                AppCore.haySolape(nuevo.inicio,nuevo.fin,otra.inicio,otra.fin,
+                    parseInt(AppCore.state.config.gap) || 0)
+            )) {
+                return { valido:false, motivo:'El nuevo horario se superpone con otra clase o no respeta el espacio configurado.' };
+            }
+
+            const propuesta = resto.concat([{
+                ...clase,
+                dia:nuevo.dia,
+                inicio:nuevo.inicio,
+                fin:nuevo.fin
+            }]);
+
+            if (!this.agendaValida(propuesta)) {
+                return { valido:false, motivo:'El movimiento incumple un límite diario, semanal o de frecuencia.' };
+            }
+
+            return { valido:true, motivo:'El nuevo horario es válido.' };
+        },
+
+        moverClase(claseId, dia, inicio) {
+            const clase = AppCore.state.clases.find(c => c.id === claseId);
+            if (!clase) return { valido:false, motivo:'No se encontró la clase.' };
+            if (clase.bloqueada) return { valido:false, motivo:'La clase está bloqueada y no puede moverse.' };
+
+            const nuevoInicio = Number(inicio);
+            const nuevoFin = nuevoInicio + (clase.fin - clase.inicio);
+            const validacion = this.validarMovimientoClase(
+                clase, { dia:Number(dia), inicio:nuevoInicio, fin:nuevoFin }
+            );
+
+            if (!validacion.valido) {
+                alert(`No se puede mover la clase.\n\n${validacion.motivo}`);
+                return validacion;
+            }
+
+            const historial = AppCore.state.historialMovimientos ||= [];
+            historial.push({
+                id:`move-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+                claseId:clase.id,
+                alumnoId:clase.alumnoId,
+                anterior:{dia:clase.dia,inicio:clase.inicio,fin:clase.fin},
+                nuevo:{dia:Number(dia),inicio:nuevoInicio,fin:nuevoFin},
+                fecha:new Date().toISOString()
+            });
+
+            clase.dia = Number(dia);
+            clase.inicio = nuevoInicio;
+            clase.fin = nuevoFin;
+
+            AppCore.saveData();
+            AppCore.UI?.renderAgenda?.();
+            return { valido:true, motivo:'Clase movida correctamente.' };
+        },
+
+        esValidaClase(clase, agenda, ignorarId = null) {
+            const alumno = this.prepararAlumno(this.alumno(clase.alumnoId));
+            if (!alumno || !this.esDisponibleAlumno(alumno, clase.dia, clase.inicio, clase.fin)) return false;
+            if (!this.esHorarioProfesoraValido(clase.dia, clase.inicio, clase.fin)) return false;
+
+            const gap = parseInt(AppCore.state.config.gap) || 0;
+            return !agenda.some(otra =>
+                otra.id !== ignorarId &&
+                otra.id !== clase.id &&
+                otra.dia === clase.dia &&
+                AppCore.haySolape(clase.inicio, clase.fin, otra.inicio, otra.fin, gap)
+            );
+        },
+
+        agendaValida(agenda) {
+            const cfg = AppCore.state.config;
+            const porDia = {};
+            const porAlumno = {};
+
+            for (const clase of agenda) {
+                if (!this.esValidaClase(clase, agenda, clase.id)) return false;
+                (porDia[clase.dia] ||= []).push(clase);
+                (porAlumno[clase.alumnoId] ||= []).push(clase);
+
+                // Las clases bloqueadas son anclas absolutas.
+                const original = AppCore.state.clases.find(c => c.id == clase.id);
+                if (original?.bloqueada &&
+                    (original.dia !== clase.dia || original.inicio !== clase.inicio || original.fin !== clase.fin)) {
+                    return false;
+                }
+            }
+
+            for (const dia of Object.keys(porDia)) {
+                const clases = porDia[dia];
+                const minutos = clases.reduce((s,c) => s + c.fin - c.inicio, 0);
+                if (clases.length > (cfg.maxClasesPorDia ?? Infinity)) return false;
+                if (minutos > (cfg.maxHorasPorDia ?? Infinity) * 60) return false;
+            }
+
+            const totalMin = agenda.reduce((s,c) => s + c.fin - c.inicio, 0);
+            if (agenda.length > (cfg.maxClasesPorSemana ?? Infinity)) return false;
+            if (totalMin > (cfg.maxHorasPorSemana ?? Infinity) * 60) return false;
+
+            for (const id of Object.keys(porAlumno)) {
+                const a = this.alumno(id);
+                if (!a || a.estado === 'inactivo') continue;
+                if (porAlumno[id].length !== (parseInt(a.frecuencia) || 1)) return false;
+            }
+
+            return true;
+        },
+
+        candidatos(alumno, agenda, limite = 30) {
+            this.prepararAlumno(alumno);
+            const dur = parseInt(alumno.duracion) || 60;
+            const salida = [];
+
+            for (let dia = 1; dia <= 5; dia++) {
+                const dc = AppCore.state.config.configuracionPorDia?.[dia];
+                if (dc && !dc.disponible) continue;
+
+                const desde = Math.max(AppCore.state.config.horaInicio, dc?.inicio ?? AppCore.state.config.horaInicio);
+                const hasta = Math.min(AppCore.state.config.horaFin, dc?.fin ?? AppCore.state.config.horaFin);
+
+                for (let inicio = desde; inicio + dur <= hasta; inicio += 15) {
+                    const c = {
+                        id: `opt-${alumno.id}-${dia}-${inicio}`,
+                        alumnoId: alumno.id, dia, inicio, fin: inicio + dur, bloqueada: false
+                    };
+                    if (this.esValidaClase(c, agenda, null)) salida.push(c);
+                }
+            }
+
+            salida.sort((a,b) => this.scoreHorario(alumno,b) - this.scoreHorario(alumno,a));
+            return salida.slice(0, limite);
+        },
+
+        scoreHorario(alumno, c) {
+            this.prepararAlumno(alumno);
+            return (alumno.idealesParsed || []).some(x =>
+                x.dia === c.dia && c.inicio >= x.inicio && c.fin <= x.fin
+            ) ? 1 : 0;
+        },
+
+        clasesPorAlumno(agenda) {
+            const r = {};
+            agenda.forEach(c => (r[c.alumnoId] ||= []).push(c));
+            return r;
+        },
+
+        calcularHuecos(agenda) {
+            let total = 0;
+            const gap = parseInt(AppCore.state.config.gap) || 0;
+            for (let dia = 1; dia <= 5; dia++) {
+                const clases = agenda.filter(c => c.dia === dia).sort((a,b) => a.inicio-b.inicio);
+                for (let i=1; i<clases.length; i++) {
+                    const hueco = clases[i].inicio - clases[i-1].fin - gap;
+                    if (hueco > 0) total += hueco;
+                }
+            }
+            return total;
+        },
+
+        calcularIngresos(agenda) {
+            return agenda.reduce((s,c) => {
+                const a = this.alumno(c.alumnoId);
+                return s + (a ? Number(a.precio) || 0 : 0);
+            }, 0);
+        },
+
+        normalizar(v, max) {
+            return max <= 0 ? 0 : Math.max(0, Math.min(1, v / max));
+        },
+
+        metricas(agenda) {
+            const alumnos = AppCore.state.alumnos.filter(a => a.estado !== 'inactivo');
+            const grupos = this.clasesPorAlumno(agenda);
+            const ingresos = this.calcularIngresos(agenda);
+            const ingresoMax = Math.max(1, alumnos.reduce((s,a) => s + (Number(a.precio)||0)*(parseInt(a.frecuencia)||1), 0));
+
+            let conservados = 0, antiguedad = 0, confiabilidad = 0, ideales = 0, flex = 0;
+            for (const a of alumnos) {
+                const clases = grupos[a.id] || [];
+                const f = parseInt(a.frecuencia) || 1;
+                if (clases.length === f) conservados++;
+                if (clases.length) antiguedad += Number(a.antiguedad) || 0;
+                confiabilidad += Number.isFinite(Number(a.confiabilidad)) ? Number(a.confiabilidad) : 50;
+
+                this.prepararAlumno(a);
+                for (const c of clases) ideales += this.scoreHorario(a,c);
+                const alternativas = this.candidatos(a, agenda.filter(c => c.alumnoId != a.id), 100).length;
+                flex += Math.min(1, alternativas / 20);
+            }
+
+            const maxAnt = Math.max(1, alumnos.reduce((s,a) => s + (Number(a.antiguedad)||0), 0));
+            const maxConf = Math.max(1, alumnos.length * 100);
+            const horas = agenda.reduce((s,c) => s + c.fin-c.inicio, 0);
+            const maxHoras = Math.max(1, (AppCore.state.config.maxHorasPorSemana || 40)*60);
+            const dias = new Set(agenda.map(c => c.dia)).size;
+            const huecos = this.calcularHuecos(agenda);
+
+            return {
+                ingresos,
+                ingresosN: this.normalizar(ingresos, ingresoMax),
+                conservacionN: conservados / Math.max(1, alumnos.length),
+                antiguedadN: antiguedad / maxAnt,
+                confiabilidadN: confiabilidad / maxConf,
+                utilizacionN: this.normalizar(horas, maxHoras),
+                huecos,
+                huecosN: 1 - this.normalizar(huecos, 600),
+                concentracionN: 1 - ((Math.max(0,dias-1))/4),
+                horariosIdealesN: ideales / Math.max(1, agenda.length),
+                preferenciasProfesoraN: this.preferenciaProfesora(agenda),
+                flexibilidadN: flex / Math.max(1, alumnos.length),
+                diasUtilizados: dias,
+                clases: agenda.length
+            };
+        },
+
+        preferenciaProfesora(agenda) {
+            const pref = AppCore.state.config.horariosPreferidos || [];
+            if (!pref.length || !agenda.length) return 0.5;
+            return agenda.filter(c => pref.some(p =>
+                p.dia === c.dia && c.inicio >= p.inicio && c.fin <= p.fin
+            )).length / agenda.length;
+        },
+
+        impactoCambio(actual, propuesta) {
+            const aMap = new Map(actual.map(c => [String(c.id), c]));
+            const pMap = new Map(propuesta.map(c => [String(c.id), c]));
+            const cambios = [];
+            let costo = 0;
+
+            for (const [id,p] of pMap) {
+                const a = aMap.get(id);
+                if (!a) {
+                    cambios.push({tipo:'agregar', propuesta:p});
+                    costo += 1;
+                    continue;
+                }
+                if (a.dia !== p.dia || a.inicio !== p.inicio || a.fin !== p.fin) {
+                    const al = this.alumno(a.alumnoId);
+                    const afectacion = this.costoAfectacion(al, a, p, actual);
+                    costo += afectacion.total;
+                    cambios.push({tipo:'mover', alumnoId:a.alumnoId, anterior:a, propuesta:p, costo:afectacion});
+                }
+            }
+
+            for (const [id,a] of aMap) {
+                if (!pMap.has(id)) {
+                    cambios.push({tipo:'eliminar', alumnoId:a.alumnoId, anterior:a});
+                    costo += 100;
+                }
+            }
+            return {costo, cambios};
+        },
+
+        costoAfectacion(alumno, anterior, nueva, agendaActual) {
+            if (!alumno) return {total:100, alternativas:0};
+            const base = agendaActual.filter(c => c.id !== anterior.id);
+            const alternativas = this.candidatos(alumno, base, 100).length;
+            const escasez = 1 - Math.min(1, alternativas / 20);
+            const prioridad = Math.min(1, Math.max(0, (Number(alumno.prioridad)||1) / 99));
+            const antig = Math.min(1, Math.max(0, (Number(alumno.antiguedad)||0) / 120));
+            const conf = Math.min(1, Math.max(0, (Number(alumno.confiabilidad) || 50) / 100));
+            const disponible = this.esDisponibleAlumno(alumno,nueva.dia,nueva.inicio,nueva.fin);
+
+            return {
+                total: escasez*35 + prioridad*20 + antig*20 + conf*15 + (disponible ? 0 : 100),
+                alternativas,
+                disponible
+            };
+        },
+
+        scoreAgenda(agenda, actual) {
+            if (!this.agendaValida(agenda)) return -Infinity;
+
+            const m = this.metricas(agenda);
+            const cambio = this.impactoCambio(actual, agenda);
+            const w = this.pesosScore;
+
+            return (
+                m.ingresosN*w.ingresos +
+                m.conservacionN*w.conservacion +
+                m.antiguedadN*w.antiguedad +
+                m.confiabilidadN*w.confiabilidad +
+                m.utilizacionN*w.utilizacion +
+                m.huecosN*w.huecos +
+                m.concentracionN*w.concentracion +
+                m.horariosIdealesN*w.horariosIdeales +
+                m.preferenciasProfesoraN*w.preferenciasProfesora +
+                m.flexibilidadN*w.flexibilidad -
+                this.normalizar(cambio.costo, Math.max(100,actual.length*100))*w.costoCambio
+            );
+        },
+
+        diferencias(actual, propuesta) {
+            const cambio = this.impactoCambio(actual, propuesta);
+            const ma = this.metricas(actual), mp = this.metricas(propuesta);
+            const afectados = [...new Set(cambio.cambios.filter(x => x.alumnoId != null).map(x => x.alumnoId))];
+
+            return {
+                ingresoActual: ma.ingresos,
+                ingresoPropuesto: mp.ingresos,
+                diferenciaIngreso: mp.ingresos - ma.ingresos,
+                clasesModificadas: cambio.cambios.filter(x => x.tipo === 'mover').length,
+                alumnosAfectados: afectados,
+                alumnosIguales: AppCore.state.alumnos
+                    .filter(a => actual.some(c=>c.alumnoId==a.id) && !afectados.includes(a.id))
+                    .map(a=>a.id),
+                huecosActuales: ma.huecos,
+                huecosPropuestos: mp.huecos,
+                diasActuales: ma.diasUtilizados,
+                diasPropuestos: mp.diasUtilizados,
+                costoCambio: cambio.costo,
+                cambios: cambio.cambios
+            };
+        },
+
+        vecinos(agenda) {
+            const salida = [];
+            const movibles = agenda.filter(c => !c.bloqueada && !(this.alumno(c.alumnoId)?.prioridad == 99));
+
+            for (const clase of movibles) {
+                const al = this.alumno(clase.alumnoId);
+                if (!al) continue;
+                const candidatos = this.candidatos(al, agenda.filter(c=>c.id!==clase.id), 18);
+
+                for (const cand of candidatos) {
+                    const vecino = this.clonarAgenda(agenda).map(c =>
+                        c.id === clase.id ? {...c,dia:cand.dia,inicio:cand.inicio,fin:cand.fin} : c
+                    );
+                    if (this.agendaValida(vecino)) salida.push(vecino);
+                    if (salida.length >= this.maxVecinos) return salida;
+                }
+            }
+
+            for (let i=0; i<movibles.length && salida.length<this.maxVecinos; i++) {
+                for (let j=i+1; j<movibles.length && salida.length<this.maxVecinos; j++) {
+                    const a=movibles[i], b=movibles[j];
+                    if (a.alumnoId === b.alumnoId) continue;
+                    const vecino=this.clonarAgenda(agenda).map(c =>
+                        c.id===a.id ? {...c,dia:b.dia,inicio:b.inicio,fin:b.fin} :
+                        c.id===b.id ? {...c,dia:a.dia,inicio:a.inicio,fin:a.fin} : c
+                    );
+                    if (this.agendaValida(vecino)) salida.push(vecino);
+                }
+            }
+            return salida;
+        },
+
+        buscarMejor(actual) {
+            let mejor=this.clonarAgenda(actual);
+            let mejorScore=this.scoreAgenda(mejor,actual);
+            let sinMejora=0;
+
+            for(let i=0;i<this.maxIteraciones && sinMejora<50;i++) {
+                let candidato=null, candidatoScore=mejorScore;
+                for(const vecino of this.vecinos(mejor)) {
+                    const s=this.scoreAgenda(vecino,actual);
+                    if(s>candidatoScore) { candidato=vecino; candidatoScore=s; }
+                }
+                if(candidato) { mejor=candidato; mejorScore=candidatoScore; sinMejora=0; }
+                else sinMejora++;
+            }
+            return {agenda:mejor,score:mejorScore};
+        },
+
+        runAndPropose() {
+            const actual=this.clonarAgenda(AppCore.state.clases);
+            if(!this.agendaValida(actual)) {
+                document.getElementById('opt-explicacion').innerHTML =
+                    '<p>⚠️ La agenda actual contiene una restricción incumplida. No se puede optimizar sin corregirla primero.</p>';
+                document.getElementById('resultado-optimizacion').style.display='block';
+                return;
+            }
+
+            const scoreActual=this.scoreAgenda(actual,actual);
+            const resultado=this.buscarMejor(actual);
+            const diferencias=this.diferencias(actual,resultado.agenda);
+
+            if(resultado.score <= scoreActual + this.umbralMejora) {
+                this.propuesta=null;
+                this.renderResultado({
+                    mensaje:'NO CONVIENE CAMBIAR LA AGENDA',
+                    diferencias,
+                    scoreActual,
+                    scorePropuesto:resultado.score
+                });
+                return;
+            }
+
+            this.propuesta=resultado.agenda;
+            this.renderResultado({
+                mensaje:'Se encontró una propuesta de mejora.',
+                diferencias,
+                scoreActual,
+                scorePropuesto:resultado.score
+            });
+        },
+
+        renderResultado(datos) {
+            const d=datos.diferencias;
+            const fmt=n=>`$${Math.round(n).toLocaleString('es-AR')}`;
+            const mins=n=>`${Math.round(n)} min`;
+            const nombres=id=>this.alumno(id)?.nombre || 'Alumno';
+
+            let html=`<p><strong>${datos.mensaje}</strong></p>
+                <table style="width:100%; border-collapse:collapse; margin:1rem 0;">
+                <tr><td>Ingreso actual</td><td><strong>${fmt(d.ingresoActual)}</strong></td></tr>
+                <tr><td>Ingreso propuesto</td><td><strong>${fmt(d.ingresoPropuesto)}</strong></td></tr>
+                <tr><td>Diferencia</td><td><strong>${fmt(d.diferenciaIngreso)}</strong></td></tr>
+                <tr><td>Clases modificadas</td><td>${d.clasesModificadas}</td></tr>
+                <tr><td>Alumnos afectados</td><td>${d.alumnosAfectados.length}</td></tr>
+                <tr><td>Alumnos que permanecen igual</td><td>${d.alumnosIguales.length}</td></tr>
+                <tr><td>Huecos</td><td>${mins(d.huecosActuales)} → ${mins(d.huecosPropuestos)}</td></tr>
+                <tr><td>Días utilizados</td><td>${d.diasActuales} → ${d.diasPropuestos}</td></tr>
+                </table>`;
+
+            if(d.alumnosAfectados.length) {
+                html += '<p><strong>Impacto de la reorganización:</strong></p><ul>';
+                d.alumnosAfectados.forEach(id=>{
+                    const c=d.cambios.find(x=>x.alumnoId===id);
+                    html += `<li>${nombres(id)}: ${c?.costo?.alternativas ?? 0} horarios alternativos compatibles.</li>`;
+                });
+                html += '</ul>';
+            }
+
+            if(datos.mensaje.includes('NO CONVIENE')) {
+                html += '<p>No se encontró una mejora suficientemente significativa como para justificar el costo de reorganizar la agenda.</p>';
+            } else {
+                html += `<p>La propuesta fue comparada contra la agenda actual y solo se mantiene si la mejora global supera el costo de los cambios.</p>`;
+            }
+
+            document.getElementById('opt-explicacion').innerHTML=html;
+            document.getElementById('resultado-optimizacion').style.display='block';
+        },
+
+        registrarCancelacion(claseId, motivo = '') {
+            const clase = AppCore.state.clases.find(c => c.id === claseId);
+            if (!clase) return { ok:false, motivo:'No se encontró la clase.' };
+
+            AppCore.state.cancelaciones ||= [];
+            AppCore.state.cancelaciones.push({
+                id: `cancel-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+                claseId: clase.id,
+                alumnoId: clase.alumnoId,
+                diaHabitual: clase.dia,
+                inicioHabitual: clase.inicio,
+                finHabitual: clase.fin,
+                motivo,
+                registradoEn: new Date().toISOString()
+            });
+            AppCore.saveData();
+            AppCore.UI?.renderAgenda?.();
+            return { ok:true };
+        },
+
+        applyProposal() {
+            if(!this.propuesta || !this.agendaValida(this.propuesta)) {
+                alert('La propuesta ya no es válida.');
+                return;
+            }
+            AppCore.state.backupAnterior=JSON.stringify(AppCore.state.clases);
+            AppCore.state.clases=this.clonarAgenda(this.propuesta);
+            AppCore.saveData();
+            this.propuesta=null;
+            document.getElementById('resultado-optimizacion').style.display='none';
+            document.getElementById('btn-deshacer').style.display='inline-block';
+            navigate('agenda');
+        },
+
+        undo() {
+            if(AppCore.state.backupAnterior) {
+                AppCore.state.clases=JSON.parse(AppCore.state.backupAnterior);
+                AppCore.saveData();
+                document.getElementById('btn-deshacer').style.display='none';
+                navigate('agenda');
+            }
+        },
+
+        // Compatibilidad con el simulador existente.
+        findBestSlot(alumno, agendaActual) {
+            const candidatos=this.candidatos(alumno,agendaActual,100);
+            if(!candidatos.length) return null;
+            candidatos.sort((a,b)=>this.scoreAgenda(agendaActual.concat([b]),agendaActual) -
+                                  this.scoreAgenda(agendaActual.concat([a]),agendaActual));
+            return candidatos[0];
+        },
+
+        findSlotForAlumno(alumno, agendaActual) {
+            return this.findBestSlot(alumno,agendaActual);
+        }
+    }
+};
+
+/**
+ * INTERFAZ DE USUARIO (UI)
+ */
+const UI = {
+    renderDashboard() {
+        let alActivos = AppCore.state.alumnos.filter(a => a.estado !== 'inactivo').length;
+        let ingresos = AppCore.state.alumnos.reduce((sum, a) => sum + (Number(a.precio) * Number(a.frecuencia) * 4), 0); // Mensual aprox
+        let minOcupados = AppCore.state.clases.reduce((sum, c) => sum + (c.fin - c.inicio), 0);
+
+        // Calcular métricas de pagos
+        let pagosPendientes = 0;
+        let pagosProximos = 0;
+        let pagosVencidos = 0;
+        let totalCobrado = 0;
+
+        AppCore.state.alumnos.forEach(a => {
+            let estado = app.calcularEstadoPago(a);
+            if(estado === 'vencido') pagosVencidos++;
+            else if(estado === 'proximo') pagosProximos++;
+            else if(estado === 'sin_info') pagosPendientes++;
+
+            if(a.pagos && a.pagos.length > 0) {
+                totalCobrado += a.pagos.reduce((sum, p) => sum + p.monto, 0);
+            }
+        });
+
+        document.getElementById('dash-alumnos').innerText = alActivos;
+        document.getElementById('dash-ingresos').innerText = "$" + ingresos.toLocaleString();
+        document.getElementById('dash-horas').innerText = (minOcupados/60).toFixed(1) + "h";
+        document.getElementById('dash-pagos').innerText = pagosVencidos;
+        document.getElementById('dash-total-cobrado').innerText = "$" + totalCobrado.toLocaleString();
+
+        let hsOcupadasNum = minOcupados/60;
+        let hsDisponiblesProf = ((AppCore.state.config.horaFin - AppCore.state.config.horaInicio) / 60) * 5;
+        let ocupacion = hsDisponiblesProf > 0 ? (hsOcupadasNum / hsDisponiblesProf * 100).toFixed(1) : 0;
+        document.getElementById('dash-ocupacion').innerText = ocupacion + "%";
+
+        // Oportunidades (Motor de Reglas básico)
+        let opList = document.getElementById('dash-oportunidades');
+        opList.innerHTML = '';
+
+        // Alertas de pagos
+        if(pagosVencidos > 0) {
+            opList.innerHTML += `<li>⚠️ Tienes ${pagosVencidos} alumnos con pagos vencidos. Contactar para cobro.</li>`;
+        }
+        if(pagosProximos > 0) {
+            opList.innerHTML += `<li>📅 Tienes ${pagosProximos} alumnos con pagos próximos a vencer.</li>`;
+        }
+        if(pagosPendientes > 0) {
+            opList.innerHTML += `<li>❓ Tienes ${pagosPendientes} alumnos sin información de pagos.</li>`;
+        }
+
+        if(hsOcupadasNum < hsDisponiblesProf * 0.5) {
+            opList.innerHTML += `<li>📈 Tienes mucha disponibilidad (${(hsDisponiblesProf - hsOcupadasNum).toFixed(1)} hs libres). Ideal para captar alumnos nuevos.</li>`;
+        }
+
+        // Evaluar costo de oportunidad
+        let alPocoIngresoAltoHorario = AppCore.state.alumnos.filter(a => a.precio < 4000 && a.prioridad == 1);
+        if(alPocoIngresoAltoHorario.length > 0) {
+            opList.innerHTML += `<li>🔄 Hay ${alPocoIngresoAltoHorario.length} alumnos de bajo ingreso en horarios estándar. Candidatos a mover si entra un prospecto premium.</li>`;
+        }
+
+        // Métricas financieras adicionales
+        opList.innerHTML += `<li>💰 Total cobrado históricamente: $${totalCobrado.toLocaleString()}</li>`;
+
+        this.renderTablaAlumnos();
+    },
+
+    renderTablaAlumnos() {
+        let tbody = document.querySelector('#tabla-alumnos tbody');
+        tbody.innerHTML = '';
+
+        let busqueda = document.getElementById('busqueda-alumnos').value.toLowerCase();
+        let alumnosFiltrados = AppCore.state.alumnos.filter(a =>
+            a.nombre.toLowerCase().includes(busqueda)
+        );
+
+        alumnosFiltrados.forEach(a => {
+            let estadoBadge = '';
+            if(a.estado === 'nuevo') estadoBadge = '<span class="badge" style="background: #DBEAFE; color: #1E40AF;">Nuevo</span>';
+            else if(a.estado === 'inactivo') estadoBadge = '<span class="badge" style="background: #F3F4F6; color: #374151;">Inactivo</span>';
+            else estadoBadge = '<span class="badge bg-green">Actual</span>';
+
+            // Calcular estado de pago detallado
+            let estadoPago = app.calcularEstadoPago(a);
+            let pagoBadge = '';
+            if(estadoPago === 'pagado') pagoBadge = '<span class="badge bg-green">Pagado</span>';
+            else if(estadoPago === 'proximo') pagoBadge = '<span class="badge" style="background: #FEF3C7; color: #92400E;">Próximo</span>';
+            else if(estadoPago === 'vencido') pagoBadge = '<span class="badge bg-red">Vencido</span>';
+            else pagoBadge = '<span class="badge" style="background: #E5E7EB; color: #374151;">Sin info</span>';
+
+            // Último pago
+            let ultimoPago = a.pagos && a.pagos.length > 0 ?
+                new Date(a.pagos[a.pagos.length - 1].fecha).toLocaleDateString() : 'Ninguno';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${a.nombre}</strong></td>
+                    <td>${estadoBadge}</td>
+                    <td>${a.prioridad == 99 ? '🔒 No mover' : (a.prioridad == 2 ? '⭐ Alta' : 'Normal')}</td>
+                    <td>${a.frecuencia}x sem (${a.duracion}m)</td>
+                    <td>$${a.precio}</td>
+                    <td>${pagoBadge}</td>
+                    <td>${ultimoPago}</td>
+                    <td>
+                        <button class="btn btn-success" style="padding: 0.2rem 0.5rem" onclick="app.abrirModalPagos(${a.id})">💰</button>
+                        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem" onclick="app.editarAlumno(${a.id})">✏️</button>
+                        <button class="btn btn-danger" style="padding: 0.2rem 0.5rem" onclick="app.eliminarAlumno(${a.id})">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+    },
+
+    renderAgenda() {
+        const calBody = document.getElementById('cal-body');
+        calBody.innerHTML = '';
+// Columna de Horas
+        let timesCol = document.createElement('div');
+        timesCol.className = 'cal-times';
+        let hStart = Math.floor(AppCore.state.config.horaInicio / 60);
+        let hEnd = Math.ceil(AppCore.state.config.horaFin / 60);
+
+        for(let h = hStart; h < hEnd; h++) {
+            let slot = document.createElement('div');
+            slot.className = 'cal-time-slot';
+            slot.innerText = `${String(h).padStart(2, '0')}:00`;
+            timesCol.appendChild(slot);
+        }
+        calBody.appendChild(timesCol);
+
+        // Columnas de días (1 a 5 = Lunes a Viernes)
+        let totalMinutos = (hEnd - hStart) * 60;
+        let pxPorMinuto = 60 / 60; // 60px por hora = 1px por minuto
+
+        for(let d = 1; d <= 5; d++) {
+            let dayCol = document.createElement('div');
+            dayCol.className = 'cal-day';
+            dayCol.style.height = `${totalMinutos * pxPorMinuto}px`;
+
+            // Filtrar clases de este día
+            let clasesDia = AppCore.state.clases.filter(c => c.dia === d);
+            clasesDia.forEach(clase => {
+                let alumno = AppCore.state.alumnos.find(a => a.id == clase.alumnoId);
+                let classBlock = document.createElement('div');
+                classBlock.className = `class-block ${clase.bloqueada ? 'blocked' : ''}`;
+
+                let topPx = (clase.inicio - AppCore.state.config.horaInicio) * pxPorMinuto;
+                let heightPx = (clase.fin - clase.inicio) * pxPorMinuto;
+
+                classBlock.style.top = `${topPx}px`;
+                classBlock.style.height = `${heightPx}px`;
+
+                classBlock.draggable = !clase.bloqueada;
+                classBlock.dataset.claseId = clase.id;
+                classBlock.innerHTML = `
+                    <strong>${alumno ? alumno.nombre : 'Desconocido'}</strong>
+                    <span>${AppCore.minsToTime(clase.inicio)} - ${AppCore.minsToTime(clase.fin)}</span>
+                    <span class="class-actions">
+                        <button type="button" title="Cancelar esta clase"
+                            style="border:0;background:transparent;cursor:pointer;padding:2px;"
+                            onclick="event.stopPropagation(); UI.cancelarClase('${clase.id}')">✕</button>
+                    </span>
+                `;
+
+                let estabaArrastrando = false;
+
+                classBlock.addEventListener('dragstart', (ev) => {
+                    if (clase.bloqueada) { ev.preventDefault(); return; }
+                    estabaArrastrando = true;
+                    ev.dataTransfer.setData('text/plain', String(clase.id));
+                    ev.dataTransfer.effectAllowed = 'move';
+                    classBlock.style.opacity = '0.55';
+                });
+
+                classBlock.addEventListener('dragend', () => {
+                    classBlock.style.opacity = '';
+                    setTimeout(() => { estabaArrastrando = false; }, 0);
+                });
+
+                classBlock.addEventListener('click', () => {
+                    if (estabaArrastrando) return;
+                    let nombre = alumno ? alumno.nombre : 'Desconocido';
+                    if(confirm(`Clase de ${nombre}.\n¿Deseas alternar el bloqueo (No Mover) de esta clase específica?`)) {
+                        clase.bloqueada = !clase.bloqueada;
+                        AppCore.saveData();
+                        this.renderAgenda();
+                    }
+                });
+
+                dayCol.addEventListener('dragover', (ev) => {
+                    ev.preventDefault();
+                    ev.dataTransfer.dropEffect = 'move';
+                });
+
+                dayCol.addEventListener('drop', (ev) => {
+                    ev.preventDefault();
+                    const claseId = ev.dataTransfer.getData('text/plain');
+                    const rect = dayCol.getBoundingClientRect();
+                    const y = Math.max(0, ev.clientY - rect.top);
+                    const minutosDesdeInicio = Math.round((y / pxPorMinuto) / 15) * 15;
+                    const inicio = AppCore.state.config.horaInicio + minutosDesdeInicio;
+                    AppCore.optimizer.moverClase(claseId, d, inicio);
+                });
+
+                dayCol.appendChild(classBlock);
+            });
+
+            calBody.appendChild(dayCol);
+        }
+    },
+
+    cancelarClase(claseId) {
+        const clase = AppCore.state.clases.find(c => c.id === claseId);
+        if (!clase) return;
+        const alumno = AppCore.state.alumnos.find(a => a.id == clase.alumnoId);
+        const nombre = alumno ? alumno.nombre : 'Alumno';
+
+        if (!confirm(`Registrar cancelación de la clase de ${nombre}?\n\nEl horario habitual seguirá en la agenda.`)) return;
+
+        const motivo = prompt('Motivo de la cancelación (opcional):', '') ?? '';
+        const resultado = AppCore.optimizer.registrarCancelacion(claseId, motivo);
+        if (!resultado.ok) alert(resultado.motivo);
+    },
+
+    abrirModalClase() {
+        // Llenar select de alumnos
+        let select = document.getElementById('cl-alumno');
+        select.innerHTML = '<option value="">Seleccionar alumno...</option>';
+        AppCore.state.alumnos.filter(a => a.estado !== 'inactivo').forEach(a => {
+            select.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+        });
+        
+        // Limpiar formulario
+        document.getElementById('cl-id').value = '';
+        document.getElementById('cl-dia').value = '1';
+        document.getElementById('cl-inicio').value = '';
+        document.getElementById('cl-fin').value = '';
+        
+        document.getElementById('modal-clase').showModal();
+    }
+};
+
+// --- NAVEGACIÓN SIMPLE SPA ---
+function navigate(viewId) {
+    let vista = document.getElementById(viewId);
+    if (!vista) return;
+
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    vista.classList.add('active');
+
+    document.querySelectorAll('nav button').forEach(el => {
+        el.classList.remove('active');
+        let handler = el.getAttribute('onclick') || '';
+        if (handler.includes(`'${viewId}'`) || handler.includes(`"${viewId}"`)) {
+            el.classList.add('active');
+        }
+    });
+
+    if(viewId === 'agenda') UI.renderAgenda();
+    if(viewId === 'config') {
+        app.cargarFormularioConfig();
+        app.generarConfigDias();
+    }
+}
+
+// --- CONEXIÓN DE EVENTOS Y FORMULARIOS ---
+const app = Object.assign(AppCore, {
+    saveConfig() {
+        this.state.config.horaInicio = this.timeToMins(document.getElementById('cfg-start').value);
+        this.state.config.horaFin = this.timeToMins(document.getElementById('cfg-end').value);
+        this.state.config.gap = parseInt(document.getElementById('cfg-gap').value, 10) || 0;
+        this.state.config.pesoEstrategia = document.getElementById('cfg-peso').value;
+        this.state.config.maxClasesPorDia = parseInt(document.getElementById('cfg-max-clases-dia').value) || 10;
+        this.state.config.maxHorasPorDia = parseInt(document.getElementById('cfg-max-horas-dia').value) || 8;
+        this.state.config.maxClasesPorSemana = parseInt(document.getElementById('cfg-max-clases-semana').value) || 40;
+        this.state.config.maxHorasPorSemana = parseInt(document.getElementById('cfg-max-horas-semana').value) || 40;
+
+        // Guardar pesos personalizados si corresponde
+        if(this.state.config.pesoEstrategia === 'personalizado') {
+            this.state.config.pesosPersonalizados = {
+                ingresos: parseInt(document.getElementById('cfg-peso-ingresos').value) || 70,
+                antiguedad: parseInt(document.getElementById('cfg-peso-antiguedad').value) || 50,
+                prioridad: parseInt(document.getElementById('cfg-peso-prioridad').value) || 80,
+                compacto: parseInt(document.getElementById('cfg-peso-compacto').value) || 30
+            };
+        }
+
+        // Guardar configuración por día
+        for(let dia = 1; dia <= 5; dia++) {
+            let disponible = document.getElementById(`cfg-dia-${dia}-disponible`).checked;
+            let inicio = this.timeToMins(document.getElementById(`cfg-dia-${dia}-inicio`).value);
+            let fin = this.timeToMins(document.getElementById(`cfg-dia-${dia}-fin`).value);
+            this.state.config.configuracionPorDia[dia] = { disponible, inicio, fin };
+        }
+
+        // Guardar horarios bloqueados y preferidos
+        this.state.config.horariosBloqueadosTexto = document.getElementById('cfg-bloqueados').value;
+        this.state.config.horariosPreferidosTexto = document.getElementById('cfg-preferidos').value;
+        this.state.config.horariosBloqueados = this.parseDisponibilidad(this.state.config.horariosBloqueadosTexto);
+        this.state.config.horariosPreferidos = this.parseDisponibilidad(this.state.config.horariosPreferidosTexto);
+
+        this.saveData();
+        alert('Configuración guardada.');
+        UI.renderAgenda(); // Actualizar agenda si cambió la configuración
+    },
+
+    cargarFormularioConfig() {
+        let cfg = this.state.config;
+        if (!cfg) return;
+        document.getElementById('cfg-start').value = this.minsToTime(cfg.horaInicio);
+        document.getElementById('cfg-end').value = this.minsToTime(cfg.horaFin);
+        document.getElementById('cfg-gap').value = cfg.gap ?? 0;
+        document.getElementById('cfg-peso').value = cfg.pesoEstrategia || 'revenue';
+        document.getElementById('cfg-max-clases-dia').value = cfg.maxClasesPorDia ?? 10;
+        document.getElementById('cfg-max-horas-dia').value = cfg.maxHorasPorDia ?? 8;
+        document.getElementById('cfg-max-clases-semana').value = cfg.maxClasesPorSemana ?? 40;
+        document.getElementById('cfg-max-horas-semana').value = cfg.maxHorasPorSemana ?? 40;
+        let pesos = cfg.pesosPersonalizados || {};
+        document.getElementById('cfg-peso-ingresos').value = pesos.ingresos ?? 70;
+        document.getElementById('cfg-peso-antiguedad').value = pesos.antiguedad ?? 50;
+        document.getElementById('cfg-peso-prioridad').value = pesos.prioridad ?? 80;
+        document.getElementById('cfg-peso-compacto').value = pesos.compacto ?? 30;
+        document.getElementById('cfg-bloqueados').value = cfg.horariosBloqueadosTexto || '';
+        document.getElementById('cfg-preferidos').value = cfg.horariosPreferidosTexto || '';
+        this.toggleConfigPersonalizado();
+    },
+
+    toggleConfigPersonalizado() {
+        let select = document.getElementById('cfg-peso');
+        let divPersonalizado = document.getElementById('cfg-personalizado');
+        divPersonalizado.style.display = select.value === 'personalizado' ? 'block' : 'none';
+    },
+
+    generarConfigDias() {
+        let container = document.getElementById('config-dias-container');
+        let dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+        let config = this.state.config.configuracionPorDia;
+
+        container.innerHTML = dias.map((dia, index) => {
+            let diaConfig = config[index + 1] || { disponible: true, inicio: 9*60, fin: 20*60 };
+            return `
+                <div style="margin-bottom: 1rem; padding: 1rem; background: #F9FAFB; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                        <input type="checkbox" id="cfg-dia-${index + 1}-disponible" ${diaConfig.disponible ? 'checked' : ''}>
+                        <label for="cfg-dia-${index + 1}-disponible" style="margin: 0; font-weight: bold;">${dia}</label>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <div style="flex: 1;">
+                            <label>Inicio</label>
+                            <input type="time" id="cfg-dia-${index + 1}-inicio" value="${this.minsToTime(diaConfig.inicio)}">
+                        </div>
+                        <div style="flex: 1;">
+                            <label>Fin</label>
+                            <input type="time" id="cfg-dia-${index + 1}-fin" value="${this.minsToTime(diaConfig.fin)}">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    saveAlumno(e) {
+        e.preventDefault();
+        if (!this.validarAlumno() || !this.validarDisponibilidad()) {
+            return;
+        }
+        let id = document.getElementById('al-id').value;
+        let nuevo = {
+            id: id ? (isNaN(Number(id)) ? id : Number(id)) : Date.now(),
+            nombre: document.getElementById('al-nombre').value.trim(),
+            precio: parseFloat(document.getElementById('al-precio').value) || 0,
+            duracion: parseInt(document.getElementById('al-duracion').value, 10) || 60,
+            frecuencia: parseInt(document.getElementById('al-clases').value, 10) || 1,
+            estado: document.getElementById('al-estado').value,
+            prioridad: parseInt(document.getElementById('al-prioridad').value, 10) || 1,
+            disponibilidadTexto: document.getElementById('al-disponibilidad').value,
+            indisponibilidadTexto: document.getElementById('al-indisponibilidad').value,
+            horariosIdealesTexto: document.getElementById('al-horarios-ideales').value,
+            notas: document.getElementById('al-notas').value,
+            pagosVencidos: false,
+            pagos: [],
+            antiguedad: 0
+        };
+        
+        nuevo.dispParsed = this.parseDisponibilidad(nuevo.disponibilidadTexto);
+        nuevo.indispParsed = this.parseDisponibilidad(nuevo.indisponibilidadTexto);
+        nuevo.idealesParsed = this.parseDisponibilidad(nuevo.horariosIdealesTexto);
+
+        if(id) {
+            let index = this.state.alumnos.findIndex(a => a.id == id);
+            if (index < 0) return;
+            let existente = this.state.alumnos[index];
+            nuevo.id = existente.id;
+            nuevo.pagosVencidos = existente.pagosVencidos;
+            nuevo.antiguedad = existente.antiguedad;
+            nuevo.pagos = existente.pagos || [];
+            nuevo.notas = nuevo.notas ?? existente.notas ?? '';
+            this.state.alumnos[index] = nuevo;
+        } else {
+            this.state.alumnos.push(nuevo);
+        }
+        
+        this.saveData();
+        document.getElementById('modal-alumno').close();
+        document.getElementById('form-alumno').reset();
+        document.getElementById('al-id').value = '';
+        document.getElementById('disp-errores').innerHTML = '';
+    },
+
+    abrirModalAlumno() {
+        document.getElementById('form-alumno').reset();
+        document.getElementById('al-id').value = '';
+        document.getElementById('disp-errores').innerHTML = '';
+        document.getElementById('disp-errores').style.color = 'var(--danger)';
+        let errAlumno = document.getElementById('alumno-errores');
+        if (errAlumno) errAlumno.innerHTML = '';
+        document.getElementById('modal-alumno').showModal();
+    },
+
+    editarAlumno(id) {
+        let alumno = this.state.alumnos.find(a => a.id == id);
+        if(alumno) {
+            document.getElementById('al-id').value = alumno.id;
+            document.getElementById('al-nombre').value = alumno.nombre;
+            document.getElementById('al-precio').value = alumno.precio;
+            document.getElementById('al-duracion').value = alumno.duracion;
+            document.getElementById('al-clases').value = alumno.frecuencia;
+            document.getElementById('al-estado').value = alumno.estado || 'actual';
+            document.getElementById('al-prioridad').value = alumno.prioridad;
+            document.getElementById('al-disponibilidad').value = alumno.disponibilidadTexto;
+            document.getElementById('al-indisponibilidad').value = alumno.indisponibilidadTexto || '';
+            document.getElementById('al-horarios-ideales').value = alumno.horariosIdealesTexto || '';
+            document.getElementById('al-notas').value = alumno.notas || '';
+            document.getElementById('modal-alumno').showModal();
+        }
+    },
+
+    eliminarAlumno(id) {
+        if(confirm('¿Estás seguro de eliminar este alumno? También se eliminarán sus clases de la agenda.')) {
+            this.state.alumnos = this.state.alumnos.filter(a => a.id != id);
+            this.state.clases = this.state.clases.filter(c => c.alumnoId != id);
+            this.saveData();
+        }
+    },
+
+    cancelarAlumno() {
+        document.getElementById('modal-alumno').close();
+        document.getElementById('form-alumno').reset();
+        document.getElementById('al-id').value = '';
+    },
+
+    validarAlumno() {
+        let nombre = document.getElementById('al-nombre').value;
+        let precio = parseFloat(document.getElementById('al-precio').value);
+        let duracion = parseInt(document.getElementById('al-duracion').value);
+        let clases = parseInt(document.getElementById('al-clases').value);
+
+        let errores = [];
+
+        if(nombre.length < 2) errores.push('El nombre debe tener al menos 2 caracteres');
+        if(precio < 0) errores.push('El precio no puede ser negativo');
+        if(duracion < 15) errores.push('La duración mínima es 15 minutos');
+        if(duracion > 240) errores.push('La duración máxima es 4 horas');
+        if(clases < 1) errores.push('Debe haber al menos 1 clase por semana');
+        if(clases > 20) errores.push('Máximo 20 clases por semana');
+
+        // Mostrar errores si existen
+        let errorDiv = document.getElementById('alumno-errores');
+        if(!errorDiv) {
+            let form = document.getElementById('form-alumno');
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'alumno-errores';
+            errorDiv.style.color = 'var(--danger)';
+            errorDiv.style.fontSize = '0.85rem';
+            errorDiv.style.marginBottom = '1rem';
+            form.insertBefore(errorDiv, form.firstChild);
+        }
+
+        if(errores.length > 0) {
+            errorDiv.innerHTML = errores.map(e => `• ${e}`).join('<br>');
+            return false;
+        } else {
+            errorDiv.innerHTML = '';
+            return true;
+        }
+    },
+
+    validarDisponibilidad() {
+        let texto = document.getElementById('al-disponibilidad').value;
+        let errorDiv = document.getElementById('disp-errores');
+
+        if(!texto.trim()) {
+            errorDiv.innerHTML = '⚠️ Debes especificar al menos un horario de disponibilidad';
+            errorDiv.style.color = 'var(--danger)';
+            return false;
+        }
+
+        // Intentar parsear para validar formato
+        try {
+            let parsed = this.parseDisponibilidad(texto);
+            if(parsed.length === 0) {
+                errorDiv.innerHTML = '⚠️ Formato incorrecto. Usa: "Lunes 17:00-20:00, Martes 16:00-18:00"';
+                errorDiv.style.color = 'var(--danger)';
+                return false;
+            } else {
+                errorDiv.innerHTML = `✅ ${parsed.length} horario(s) detectado(s)`;
+                errorDiv.style.color = 'var(--success)';
+                return true;
+            }
+        } catch(e) {
+            errorDiv.innerHTML = '⚠️ Error en el formato de disponibilidad';
+            errorDiv.style.color = 'var(--danger)';
+            return false;
+        }
+    },
+
+    saveClase(e) {
+        e.preventDefault();
+
+        let alumnoId = parseInt(document.getElementById('cl-alumno').value);
+        let dia = parseInt(document.getElementById('cl-dia').value);
+        let inicio = this.timeToMins(document.getElementById('cl-inicio').value);
+        let fin = this.timeToMins(document.getElementById('cl-fin').value);
+
+        // Validar
+        if(!alumnoId) {
+            alert('Por favor selecciona un alumno');
+            return;
+        }
+
+        if(inicio >= fin) {
+            alert('La hora de inicio debe ser anterior a la hora de fin');
+            return;
+        }
+
+        let alumno = this.state.alumnos.find(a => a.id == alumnoId);
+        if (!alumno) {
+            alert('No se encontró el alumno seleccionado');
+            return;
+        }
+        if (!alumno.dispParsed || !alumno.dispParsed.length) {
+            alumno.dispParsed = this.parseDisponibilidad(alumno.disponibilidadTexto);
+        }
+        if (!alumno.dispParsed.length) {
+            alert('El alumno no tiene disponibilidad válida cargada');
+            return;
+        }
+        let enDisponibilidad = alumno.dispParsed.some(d =>
+            d.dia === dia && inicio >= d.inicio && fin <= d.fin
+        );
+        if (!enDisponibilidad) {
+            alert('El horario está fuera de la disponibilidad del alumno');
+            return;
+        }
+        if (alumno.indispParsed && alumno.indispParsed.length) {
+            let enIndisp = alumno.indispParsed.some(d =>
+                d.dia === dia && this.haySolape(inicio, fin, d.inicio, d.fin, 0)
+            );
+            if (enIndisp) {
+                alert('El horario coincide con una indisponibilidad del alumno');
+                return;
+            }
+        }
+
+        let claseId = document.getElementById('cl-id').value;
+        let gap = parseInt(this.state.config.gap) || 0;
+        let overlap = this.state.clases.some(clase => {
+            if (claseId && clase.id == claseId) return false;
+            return clase.dia === dia && this.haySolape(inicio, fin, clase.inicio, clase.fin, gap);
+        });
+
+        if(overlap) {
+            alert('Ya existe una clase en este horario');
+            return;
+        }
+
+        // Verificar horario de profesora
+        if(inicio < this.state.config.horaInicio || fin > this.state.config.horaFin) {
+            alert('El horario está fuera del horario de trabajo de la profesora');
+            return;
+        }
+
+        // Crear clase
+        let nuevaClase = {
+            id: Date.now(),
+            alumnoId: alumnoId,
+            dia: dia,
+            inicio: inicio,
+            fin: fin,
+            bloqueada: false
+        };
+
+        this.state.clases.push(nuevaClase);
+        this.saveData();
+        document.getElementById('modal-clase').close();
+        document.getElementById('form-clase').reset();
+        UI.renderAgenda();
+    },
+
+    calcularEstadoPago(alumno) {
+        if(!alumno.pagos || alumno.pagos.length === 0) {
+            return 'sin_info';
+        }
+
+        let ultimoPago = alumno.pagos[alumno.pagos.length - 1];
+        let fechaUltimoPago = new Date(ultimoPago.fecha);
+        let hoy = new Date();
+        let diasDesdePago = Math.floor((hoy - fechaUltimoPago) / (1000 * 60 * 60 * 24));
+
+        // Asumimos ciclo mensual de pago (30 días)
+        if(diasDesdePago <= 30) {
+            return 'pagado';
+        } else if(diasDesdePago <= 35) {
+            return 'proximo';
+        } else {
+            return 'vencido';
+        }
+    },
+
+    abrirModalPagos(alumnoId) {
+        let alumno = this.state.alumnos.find(a => a.id == alumnoId);
+        if(!alumno) return;
+
+        if(!alumno.pagos) alumno.pagos = [];
+
+        let modalHtml = `
+            <dialog id="modal-pagos-${alumnoId}">
+                <h3>Historial de Pagos - ${alumno.nombre}</h3>
+                <div style="margin-bottom: 1rem;">
+                    <label>Registrar Nuevo Pago</label>
+                    <input type="number" id="pago-monto" placeholder="Monto ($)" value="${alumno.precio * alumno.frecuencia * 4}">
+                    <input type="date" id="pago-fecha" value="${new Date().toISOString().split('T')[0]}">
+                    <button class="btn btn-success" onclick="app.registrarPago(${alumnoId})">Registrar Pago</button>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Monto</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${alumno.pagos.slice().reverse().map((pago, index) => `
+                                <tr>
+                                    <td>${new Date(pago.fecha).toLocaleDateString()}</td>
+                                    <td>$${pago.monto}</td>
+                                    <td>
+                                        <button class="btn btn-danger" style="padding: 0.2rem 0.5rem" onclick="app.eliminarPago(${alumnoId}, ${alumno.pagos.length - 1 - index})">🗑️</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn btn-outline" style="margin-top: 1rem;" onclick="document.getElementById('modal-pagos-${alumnoId}').close()">Cerrar</button>
+            </dialog>
+        `;
+
+        // Eliminar modal anterior si existe
+        let modalAnterior = document.getElementById(`modal-pagos-${alumnoId}`);
+        if(modalAnterior) modalAnterior.remove();
+
+        // Agregar nuevo modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        document.getElementById(`modal-pagos-${alumnoId}`).showModal();
+    },
+
+    registrarPago(alumnoId) {
+        let alumno = this.state.alumnos.find(a => a.id == alumnoId);
+        if(!alumno) return;
+
+        let monto = parseFloat(document.getElementById('pago-monto').value);
+        let fecha = document.getElementById('pago-fecha').value;
+
+        if(!monto || !fecha) {
+            alert('Por favor completa todos los campos');
+            return;
+        }
+
+        if(!alumno.pagos) alumno.pagos = [];
+
+        alumno.pagos.push({
+            id: Date.now(),
+            monto: monto,
+            fecha: fecha
+        });
+
+        alumno.pagosVencidos = false;
+        this.saveData();
+
+        // Cerrar y reabrir modal para actualizar
+        document.getElementById(`modal-pagos-${alumnoId}`).close();
+        this.abrirModalPagos(alumnoId);
+        UI.renderTablaAlumnos();
+    },
+
+    eliminarPago(alumnoId, pagoIndex) {
+        if(confirm('¿Estás seguro de eliminar este pago?')) {
+            let alumno = this.state.alumnos.find(a => a.id == alumnoId);
+            if(alumno && alumno.pagos) {
+                alumno.pagos.splice(pagoIndex, 1);
+                this.saveData();
+
+                // Cerrar y reabrir modal para actualizar
+                document.getElementById(`modal-pagos-${alumnoId}`).close();
+                this.abrirModalPagos(alumnoId);
+                UI.renderTablaAlumnos();
+            }
+        }
+    },
+
+    simularAlumno(e) {
+        e.preventDefault();
+
+        let prospecto = {
+            nombre: document.getElementById('sim-nombre').value,
+            precio: parseInt(document.getElementById('sim-precio').value),
+            duracion: parseInt(document.getElementById('sim-duracion').value),
+            frecuencia: parseInt(document.getElementById('sim-clases').value),
+            disponibilidadTexto: document.getElementById('sim-disponibilidad').value
+        };
+
+        prospecto.dispParsed = this.parseDisponibilidad(prospecto.disponibilidadTexto);
+
+        // Simular si puede entrar en la agenda actual
+        let agendaActual = [...this.state.clases];
+        let clasesAsignadas = 0;
+        let slotsEncontrados = [];
+        let gap = parseInt(this.state.config.gap) || 0;
+
+        for(let i = 0; i < prospecto.frecuencia; i++) {
+            let slotEncontrado = this.optimizer.findBestSlot(prospecto, agendaActual);
+            if(slotEncontrado) {
+                clasesAsignadas++;
+                slotsEncontrados.push(slotEncontrado);
+                agendaActual.push(slotEncontrado); // Simular que se agrega
+            }
+        }
+
+        // Análisis de impacto: identificar alumnos que podrían verse afectados
+        let alumnosImpactados = [];
+        if(clasesAsignadas < prospecto.frecuencia) {
+            // Buscar alumnos de menor valor que podrían ser movidos
+            let alumnosOrdenados = [...this.state.alumnos]
+                .filter(a => a.prioridad != 99 && a.estado !== 'inactivo')
+                .sort((a, b) => (a.precio * a.frecuencia) - (b.precio * b.frecuencia));
+
+            alumnosImpactados = alumnosOrdenados.slice(0, 3); // Top 3 candidatos a mover
+        }
+
+        let resultadoDiv = document.getElementById('resultado-simulacion');
+        let explicacionDiv = document.getElementById('sim-explicacion');
+
+        if(clasesAsignadas === prospecto.frecuencia) {
+            let ingresosAdicionales = prospecto.precio * prospecto.frecuencia * 4; // Mensual
+            explicacionDiv.innerHTML = `
+                <p>✅ <strong>${prospecto.nombre}</strong> puede entrar sin problemas.</p>
+                <p>📅 Se encontraron ${clasesAsignadas} horarios compatibles.</p>
+                <p>💰 Ingresos adicionales mensuales: $${ingresosAdicionales.toLocaleString()}</p>
+                <p>📍 Horarios sugeridos:</p>
+                <ul>
+                    ${slotsEncontrados.map(s => `<li>${this.getDias()[s.dia-1]} ${this.minsToTime(s.inicio)} - ${this.minsToTime(s.fin)}</li>`).join('')}
+                </ul>
+            `;
+        } else if(clasesAsignadas > 0) {
+            explicacionDiv.innerHTML = `
+                <p>⚠️ <strong>${prospecto.nombre}</strong> puede entrar parcialmente.</p>
+                <p>📅 Solo se encontraron ${clasesAsignadas} de ${prospecto.frecuencia} horarios compatibles.</p>
+                <p>🔄 Para acomodar todas las clases, se necesitaría reorganizar la agenda.</p>
+                <p>📍 Horarios disponibles:</p>
+                <ul>
+                    ${slotsEncontrados.map(s => `<li>${this.getDias()[s.dia-1]} ${this.minsToTime(s.inicio)} - ${this.minsToTime(s.fin)}</li>`).join('')}
+                </ul>
+                <p>👥 Alumnos que podrían verse afectados al reorganizar:</p>
+                <ul>
+                    ${alumnosImpactados.map(a => `<li>${a.nombre} ($${a.precio}/clase, ${a.frecuencia}x semana)</li>`).join('')}
+                </ul>
+            `;
+        } else {
+            explicacionDiv.innerHTML = `
+                <p>❌ <strong>${prospecto.nombre}</strong> NO puede entrar con la agenda actual.</p>
+                <p>📅 No se encontraron horarios compatibles con su disponibilidad.</p>
+                <p>💡 Sugerencia: Ejecuta el optimizador para reorganizar la agenda o ajusta la disponibilidad del prospecto.</p>
+                <p>👥 Alumnos que podrían ser movidos para liberar espacio:</p>
+                <ul>
+                    ${alumnosImpactados.map(a => `<li>${a.nombre} ($${a.precio}/clase, ${a.frecuencia}x semana)</li>`).join('')}
+                </ul>
+            `;
+        }
+
+        resultadoDiv.style.display = 'block';
+    },
+
+    getDias() {
+        return ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+    }
+});
+
+// Iniciar app al cargar
+window.onload = () => {
+    app.init();
+};
+</script>
+</body>
+</html>
