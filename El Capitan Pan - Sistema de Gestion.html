@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Capitán Pan — Sistema de Gestión</title>
+<style>
+:root{
+  --navy:#161d29;
+  --navy-2:#1f2937;
+  --navy-3:#2a3547;
+  --bg:#f1f2ee;
+  --card:#ffffff;
+  --border:#e2e4dd;
+  --text:#1b1f27;
+  --muted:#6b7280;
+  --amber:#c4801f;
+  --amber-dark:#9c6516;
+  --amber-light:#f4e3c8;
+  --green:#2f7d5a;
+  --green-light:#e4f1ea;
+  --red:#bf3b30;
+  --red-light:#fbe9e7;
+  --blue:#2c5f8a;
+  --radius:8px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.5;
+}
+.brand-font{font-family:Georgia,'Iowan Old Style','Palatino Linotype',serif;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:14px;}
+a{color:inherit;}
+#app{display:flex;min-height:100vh;}
+
+/* ---------- SIDEBAR ---------- */
+#sidebar{
+  width:230px;flex-shrink:0;background:var(--navy);color:#dfe3ea;
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.brand{
+  padding:22px 18px 16px 18px;border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:10px;
+}
+.brand svg{flex-shrink:0;}
+.brand-text{line-height:1.15;}
+.brand-text .l1{font-size:15px;font-weight:700;letter-spacing:.2px;}
+.brand-text .l2{font-size:10.5px;color:#9aa5b6;margin-top:2px;}
+nav.navlist{padding:14px 10px;flex:1;}
+.navgroup-label{font-size:10.5px;color:#7c8798;margin:14px 10px 6px 10px;font-weight:600;}
+.navgroup-label:first-child{margin-top:0;}
+.navitem{
+  display:block;width:100%;text-align:left;background:none;border:none;color:#c7cedb;
+  padding:9px 12px;border-radius:6px;font-size:13.5px;margin-bottom:2px;
+  border-left:3px solid transparent;
+}
+.navitem:hover{background:rgba(255,255,255,.06);color:#fff;}
+.navitem.active{background:var(--navy-3);color:#fff;border-left:3px solid var(--amber);font-weight:600;}
+.sidebar-footer{padding:14px 16px;font-size:11px;color:#68748a;border-top:1px solid rgba(255,255,255,.08);}
+
+/* ---------- MAIN ---------- */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;}
+#topbar{
+  background:var(--card);border-bottom:1px solid var(--border);padding:16px 28px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+#topbar h1{font-size:18px;margin:0;font-weight:700;}
+#topbar .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+#content{padding:24px 28px 60px 28px;flex:1;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ---------- LAYOUT HELPERS ---------- */
+.row{display:flex;gap:16px;flex-wrap:wrap;}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.card h3{margin:0 0 4px 0;font-size:12px;color:var(--muted);font-weight:600;text-transform:none;}
+.card .value{font-size:22px;font-weight:700;margin-top:2px;}
+.card .value.pos{color:var(--green);}
+.card .value.neg{color:var(--red);}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.panel-head h2{margin:0;font-size:15.5px;font-weight:700;}
+.panel-head p.hint{margin:2px 0 0 0;font-size:12px;color:var(--muted);}
+
+/* ---------- BUTTONS ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;
+  padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600;color:var(--text);
+}
+.btn:hover{background:#f6f6f4;}
+.btn-primary{background:var(--amber);border-color:var(--amber-dark);color:#fff;}
+.btn-primary:hover{background:var(--amber-dark);}
+.btn-danger{background:#fff;border-color:var(--red);color:var(--red);}
+.btn-danger:hover{background:var(--red-light);}
+.btn-sm{padding:5px 9px;font-size:12px;}
+.btn-ghost{border-color:transparent;background:transparent;}
+.btn-ghost:hover{background:#f0f0ec;}
+
+/* ---------- TABLES ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;
+   padding:8px 10px;border-bottom:2px solid var(--border);white-space:nowrap;}
+td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr:hover{background:#faf9f6;}
+.tablewrap{overflow-x:auto;}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.tag-green{background:var(--green-light);color:var(--green);}
+.tag-red{background:var(--red-light);color:var(--red);}
+.tag-amber{background:var(--amber-light);color:var(--amber-dark);}
+.tag-gray{background:#eceeea;color:var(--muted);}
+.muted{color:var(--muted);}
+.small{font-size:12px;}
+
+/* ---------- FORMS ---------- */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
+.form-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:12px;font-weight:600;color:#3d4451;}
+.field label .opt{color:var(--muted);font-weight:400;}
+.field input,.field select,.field textarea{
+  padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:#fdfdfc;
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--amber-light);border-color:var(--amber);}
+.field textarea{resize:vertical;min-height:50px;}
+.formfoot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+.recipe-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:center;margin-bottom:8px;}
+.hint-box{background:#f5f6f2;border:1px dashed var(--border);border-radius:6px;padding:10px 12px;font-size:12px;color:var(--muted);margin-bottom:12px;}
+.warn-box{background:var(--red-light);border:1px solid #f2c9c4;color:#8a2c22;border-radius:6px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;}
+.ok-box{background:var(--green-light);border:1px solid #c8e3d5;color:var(--green);border-radius:6px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;}
+
+/* ---------- MODAL ---------- */
+#modalOverlay{position:fixed;inset:0;background:rgba(15,18,24,.5);display:none;align-items:flex-start;justify-content:center;
+  padding:40px 16px;overflow-y:auto;z-index:100;}
+#modalOverlay.active{display:flex;}
+#modalBox{background:#fff;border-radius:10px;width:100%;max-width:640px;padding:24px 26px;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+#modalBox h2{margin:0 0 4px 0;font-size:16.5px;}
+#modalBox .modal-sub{font-size:12.5px;color:var(--muted);margin-bottom:16px;}
+.modal-close{float:right;background:none;border:none;font-size:20px;color:var(--muted);line-height:1;}
+
+/* ---------- TOAST ---------- */
+#toastWrap{position:fixed;bottom:22px;right:22px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--navy);color:#fff;padding:11px 16px;border-radius:7px;font-size:13px;box-shadow:0 8px 20px rgba(0,0,0,.2);
+  min-width:220px;border-left:4px solid var(--amber);}
+.toast.error{border-left-color:var(--red);}
+.toast.success{border-left-color:var(--green);}
+
+/* ---------- MISC ---------- */
+.divider{height:1px;background:var(--border);margin:18px 0;}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.chip{padding:6px 13px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12.5px;font-weight:600;color:var(--text);}
+.chip.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.emptystate{text-align:center;padding:40px 20px;color:var(--muted);}
+.emptystate .big{font-size:15px;color:var(--text);font-weight:600;margin-bottom:4px;}
+.bal-check{padding:12px 16px;border-radius:8px;font-weight:700;font-size:13.5px;margin-bottom:16px;}
+.bal-ok{background:var(--green-light);color:var(--green);}
+.bal-bad{background:var(--red-light);color:var(--red);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:900px){
+  #sidebar{width:64px;}
+  .brand-text,.navgroup-label,.sidebar-footer{display:none;}
+  .brand{justify-content:center;}
+  .navitem{text-align:center;padding:10px 4px;font-size:10px;}
+  .form-grid,.form-grid.cols-3,.two-col{grid-template-columns:1fr;}
+}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:#c7c9c2;border-radius:6px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="19" stroke="#e8a944" stroke-width="3"/>
+        <circle cx="24" cy="24" r="4.5" fill="#e8a944"/>
+        <g stroke="#e8a944" stroke-width="3" stroke-linecap="round">
+          <line x1="24" y1="2" x2="24" y2="11"/>
+          <line x1="24" y1="37" x2="24" y2="46"/>
+          <line x1="2" y1="24" x2="11" y2="24"/>
+          <line x1="37" y1="24" x2="46" y2="24"/>
+          <line x1="8.2" y1="8.2" x2="14.5" y2="14.5"/>
+          <line x1="33.5" y1="33.5" x2="39.8" y2="39.8"/>
+          <line x1="39.8" y1="8.2" x2="33.5" y2="14.5"/>
+          <line x1="14.5" y1="33.5" x2="8.2" y2="39.8"/>
+        </g>
+      </svg>
+      <div class="brand-text">
+        <div class="l1 brand-font">El Capitán Pan</div>
+        <div class="l2">SISTEMA DE GESTIÓN</div>
+      </div>
+    </div>
+    <nav class="navlist">
+      <div class="navgroup-label">General</div>
+      <button class="navitem active" data-view="dashboard">Panel principal</button>
+      <div class="navgroup-label">Producción</div>
+      <button class="navitem" data-view="insumos">Insumos</button>
+      <button class="navitem" data-view="productos">Productos / Recetas</button>
+      <button class="navitem" data-view="costos">Costos indirectos</button>
+      <div class="navgroup-label">Movimientos</div>
+      <button class="navitem" data-view="ventas">Ventas</button>
+      <button class="navitem" data-view="compras">Compras</button>
+      <button class="navitem" data-view="gastos">Gastos</button>
+      <div class="navgroup-label">Contabilidad</div>
+      <button class="navitem" data-view="diario">Libro Diario</button>
+      <button class="navitem" data-view="mayor">Libro Mayor</button>
+      <button class="navitem" data-view="cuentas">Plan de Cuentas</button>
+      <button class="navitem" data-view="balance">Balance</button>
+      <button class="navitem" data-view="resultados">Estado de Resultados</button>
+      <div class="navgroup-label">Datos</div>
+      <button class="navitem" data-view="reportes">Reportes y Backup</button>
+    </nav>
+    <div class="sidebar-footer">El Capitán Pan &copy; <span id="yearNow"></span><br>Datos guardados en este navegador.</div>
+  </aside>
+
+  <div id="main">
+    <div id="topbar">
+      <div>
+        <h1 id="viewTitle">Panel principal</h1>
+        <div class="sub" id="viewSub">Resumen general del negocio</div>
+      </div>
+      <div class="row" style="gap:8px;">
+        <button class="btn" id="btnQuickBackup">Exportar backup</button>
+      </div>
+    </div>
+    <div id="content">
+
+      <!-- DASHBOARD -->
+      <section class="view active" id="view-dashboard">
+        <div class="chip-row" id="dashPeriodChips"></div>
+        <div class="grid-cards" id="dashCards"></div>
+        <div class="two-col">
+          <div class="panel"><div class="panel-head"><h2>Ventas vs Costo vs Gastos</h2></div><div id="dashChart1"></div></div>
+          <div class="panel"><div class="panel-head"><h2>Alertas de insumos</h2></div><div id="dashAlerts"></div></div>
+        </div>
+      </section>
+
+      <!-- INSUMOS -->
+      <section class="view" id="view-insumos">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Insumos</h2><p class="hint">Materias primas, envases y packaging. El costo unitario se calcula automáticamente.</p></div>
+            <button class="btn btn-primary" onclick="openInsumoModal()">+ Nuevo insumo</button>
+          </div>
+          <div class="tablewrap"><table id="tblInsumos"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- PRODUCTOS -->
+      <section class="view" id="view-productos">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Productos y recetas</h2><p class="hint">Costo, precio de venta y ganancia se recalculan según el precio actual de los insumos.</p></div>
+            <button class="btn btn-primary" onclick="openProductoModal()">+ Nuevo producto</button>
+          </div>
+          <div class="tablewrap"><table id="tblProductos"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- COSTOS INDIRECTOS -->
+      <section class="view" id="view-costos">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Costos indirectos</h2><p class="hint">Gas, electricidad, alquiler, mano de obra, etc. Definí cómo se reparten entre tus productos para conocer el costo real por unidad.</p></div>
+            <button class="btn btn-primary" onclick="openCostoIndModal()">+ Nuevo costo indirecto</button>
+          </div>
+          <div class="hint-box">Este módulo distribuye costos entre productos para calcular el costo real por unidad. Para que también impacten en el Estado de Resultados y el Balance, cargá el gasto correspondiente en el módulo <b>Gastos</b>.</div>
+          <div class="tablewrap"><table id="tblCostos"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- VENTAS -->
+      <section class="view" id="view-ventas">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Ventas</h2><p class="hint">Cada venta genera el asiento contable automáticamente.</p></div>
+            <button class="btn btn-primary" onclick="openVentaModal()">+ Nueva venta</button>
+          </div>
+          <div class="tablewrap"><table id="tblVentas"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- COMPRAS -->
+      <section class="view" id="view-compras">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Compras de insumos</h2><p class="hint">Registrá nuevas compras para actualizar precio, stock e historial.</p></div>
+            <button class="btn btn-primary" onclick="openCompraModal()">+ Nueva compra</button>
+          </div>
+          <div class="tablewrap"><table id="tblCompras"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- GASTOS -->
+      <section class="view" id="view-gastos">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Gastos generales</h2><p class="hint">Gastos del negocio que no son compra de insumos.</p></div>
+            <button class="btn btn-primary" onclick="openGastoModal()">+ Nuevo gasto</button>
+          </div>
+          <div class="tablewrap"><table id="tblGastos"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- LIBRO DIARIO -->
+      <section class="view" id="view-diario">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Libro Diario</h2><p class="hint">Todos los asientos contables, generados automáticamente o manuales.</p></div>
+            <button class="btn btn-primary" onclick="openAsientoManualModal()">+ Asiento manual</button>
+          </div>
+          <div class="tablewrap"><table id="tblDiario"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- LIBRO MAYOR -->
+      <section class="view" id="view-mayor">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Libro Mayor</h2><p class="hint">Seleccioná una cuenta para ver sus movimientos y saldo.</p></div>
+            <select id="mayorCuentaSelect" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;min-width:220px;"></select>
+          </div>
+          <div class="grid-cards" id="mayorTotales" style="margin-bottom:14px;"></div>
+          <div class="tablewrap"><table id="tblMayor"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- PLAN DE CUENTAS -->
+      <section class="view" id="view-cuentas">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h2>Plan de Cuentas</h2><p class="hint">Las cuentas del sistema no se pueden eliminar porque son usadas por los asientos automáticos.</p></div>
+            <div class="row" style="gap:8px;">
+              <button class="btn" onclick="openSaldoInicialModal()">Cargar saldo inicial</button>
+              <button class="btn btn-primary" onclick="openCuentaModal()">+ Nueva cuenta</button>
+            </div>
+          </div>
+          <div class="tablewrap"><table id="tblCuentas"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- BALANCE -->
+      <section class="view" id="view-balance">
+        <div class="panel">
+          <div class="panel-head"><h2>Balance</h2></div>
+          <div id="balanceCheck"></div>
+          <div class="two-col">
+            <div>
+              <h3 style="font-size:13px;">ACTIVO</h3>
+              <div class="tablewrap"><table id="tblBalanceActivo"><tbody></tbody></table></div>
+            </div>
+            <div>
+              <h3 style="font-size:13px;">PASIVO + PATRIMONIO NETO</h3>
+              <div class="tablewrap"><table id="tblBalancePasivo"><tbody></tbody></table></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ESTADO DE RESULTADOS -->
+      <section class="view" id="view-resultados">
+        <div class="panel">
+          <div class="panel-head"><h2>Estado de Resultados</h2></div>
+          <div class="tablewrap"><table id="tblResultados"><tbody></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- REPORTES / BACKUP -->
+      <section class="view" id="view-reportes">
+        <div class="panel">
+          <div class="panel-head"><h2>Exportar datos</h2></div>
+          <p class="hint" style="margin-top:-8px;">Exportá cualquier tabla del sistema en formato CSV o JSON.</p>
+          <div class="chip-row" id="exportChips"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Copia de seguridad</h2></div>
+          <p class="hint" style="margin-top:-8px;">Guardá o restaurá toda la información del sistema.</p>
+          <div class="row">
+            <button class="btn btn-primary" onclick="exportBackup()">Exportar backup completo (JSON)</button>
+            <button class="btn" onclick="document.getElementById('importFile').click()">Importar backup</button>
+            <input type="file" id="importFile" accept="application/json" style="display:none;">
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Zona de riesgo</h2></div>
+          <p class="hint" style="margin-top:-8px;">Esta acción borra todos los datos cargados en este navegador.</p>
+          <button class="btn btn-danger" onclick="wipeAllData()">Borrar todos los datos</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="modalOverlay">
+  <div id="modalBox"></div>
+</div>
+<div id="toastWrap"></div>
+<script>
+/* =========================================================
+   EL CAPITÁN PAN — SISTEMA DE GESTIÓN
+   ========================================================= */
+
+const STORAGE_KEY = 'ecp_state_v1';
+
+const UNITS = {
+  g:{tipo:'peso', factor:1, label:'g'},
+  kg:{tipo:'peso', factor:1000, label:'kg'},
+  ml:{tipo:'volumen', factor:1, label:'ml'},
+  l:{tipo:'volumen', factor:1000, label:'l'},
+  unidad:{tipo:'unidad', factor:1, label:'unidad'}
+};
+
+const DEFAULT_CUENTAS = [
+  {id:'caja', nombre:'Caja', tipo:'activo', sistema:true},
+  {id:'banco', nombre:'Banco', tipo:'activo', sistema:true},
+  {id:'insumos_cta', nombre:'Mercadería / Insumos', tipo:'activo', sistema:true},
+  {id:'equipamiento', nombre:'Equipamiento', tipo:'activo', sistema:true},
+  {id:'otros_activos', nombre:'Otros activos', tipo:'activo', sistema:false},
+  {id:'proveedores', nombre:'Proveedores', tipo:'pasivo', sistema:true},
+  {id:'deudas', nombre:'Deudas', tipo:'pasivo', sistema:true},
+  {id:'otros_pasivos', nombre:'Otros pasivos', tipo:'pasivo', sistema:false},
+  {id:'capital', nombre:'Capital', tipo:'patrimonio', sistema:true},
+  {id:'resultados_acumulados', nombre:'Resultados acumulados', tipo:'patrimonio', sistema:true},
+  {id:'ventas', nombre:'Ventas', tipo:'ingreso', sistema:true},
+  {id:'otros_ingresos', nombre:'Otros ingresos', tipo:'ingreso', sistema:false},
+  {id:'cmv', nombre:'Costo de mercadería vendida', tipo:'costo', sistema:true},
+  {id:'materia_prima', nombre:'Materia prima', tipo:'costo', sistema:false},
+  {id:'otros_costos', nombre:'Otros costos', tipo:'costo', sistema:false},
+  {id:'gasto_electricidad', nombre:'Electricidad', tipo:'gasto', sistema:false},
+  {id:'gasto_gas', nombre:'Gas', tipo:'gasto', sistema:false},
+  {id:'gasto_agua', nombre:'Agua', tipo:'gasto', sistema:false},
+  {id:'gasto_alquiler', nombre:'Alquiler', tipo:'gasto', sistema:false},
+  {id:'gasto_transporte', nombre:'Transporte', tipo:'gasto', sistema:false},
+  {id:'gasto_publicidad', nombre:'Publicidad', tipo:'gasto', sistema:false},
+  {id:'gasto_mantenimiento', nombre:'Mantenimiento', tipo:'gasto', sistema:false},
+  {id:'gasto_manodeobra', nombre:'Mano de obra', tipo:'gasto', sistema:false},
+  {id:'gasto_otros', nombre:'Otros gastos', tipo:'gasto', sistema:true}
+];
+
+function defaultState(){
+  return {
+    insumos:[], productos:[], costosIndirectos:[], ventas:[], compras:[], gastos:[],
+    cuentas: JSON.parse(JSON.stringify(DEFAULT_CUENTAS)),
+    asientos:[], nextAsientoNum:1, seeded:false
+  };
+}
+
+let STATE = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultState(), parsed);
+  }catch(e){
+    console.error('Error leyendo datos guardados', e);
+    return defaultState();
+  }
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
+}
+
+/* ---------------- UTILS ---------------- */
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function toLocalDateStr(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function todayStr(){ return toLocalDateStr(new Date()); }
+function daysAgoStr(n){ const d=new Date(); d.setDate(d.getDate()-n); return toLocalDateStr(d); }
+function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
+function round2(n){ return Math.round((n+Number.EPSILON)*100)/100; }
+function fmtMoney(n){
+  n = n||0;
+  return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:2}).format(n);
+}
+/* ---- Inputs de dinero con formato 1.000,34 mientras se escribe ---- */
+function formatMoneyTyping(value){
+  let clean = String(value).replace(/[^\d,]/g,'');
+  const firstComma = clean.indexOf(',');
+  if(firstComma !== -1){
+    clean = clean.slice(0,firstComma+1) + clean.slice(firstComma+1).replace(/,/g,'');
+  }
+  let [intPart, decPart] = clean.split(',');
+  intPart = (intPart||'').replace(/^0+(?=\d)/,'');
+  if(decPart!==undefined) decPart = decPart.slice(0,2);
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  return decPart!==undefined ? intPart+','+decPart : intPart;
+}
+function parseMoneyInput(value){
+  if(value===undefined || value===null || value==='') return 0;
+  const clean = String(value).replace(/\./g,'').replace(',', '.');
+  const n = parseFloat(clean);
+  return isNaN(n)?0:n;
+}
+function moneyDisplayValue(n){
+  n = n||0;
+  return formatMoneyTyping(String(n).replace('.',','));
+}
+document.addEventListener('input', e=>{
+  if(e.target && e.target.classList && e.target.classList.contains('money-input')){
+    const start = e.target.selectionStart;
+    const before = e.target.value;
+    const formatted = formatMoneyTyping(before);
+    if(formatted !== before){
+      e.target.value = formatted;
+      // mantener el cursor al final; es el comportamiento más predecible para montos
+      e.target.setSelectionRange(formatted.length, formatted.length);
+    }
+  }
+});
+function fmtPct(n){ return (n||0).toFixed(1)+'%'; }
+function fmtDate(s){ if(!s) return ''; const [y,m,d]=s.split('-'); return d+'/'+m+'/'+y; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function unitsCompatible(u1,u2){ return UNITS[u1] && UNITS[u2] && UNITS[u1].tipo===UNITS[u2].tipo; }
+function toBase(cant,u){ return cant*UNITS[u].factor; }
+function fromBase(cantBase,u){ return cantBase/UNITS[u].factor; }
+function unitOptionsFor(tipo){
+  return Object.keys(UNITS).filter(k=>UNITS[k].tipo===tipo);
+}
+function toast(msg, type){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast'+(type?(' '+type):'');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 3200);
+}
+function confirmar(msg){ return window.confirm(msg); }
+
+/* ---------------- CUENTAS / CONTABILIDAD ---------------- */
+function getCuenta(id){ return STATE.cuentas.find(c=>c.id===id); }
+function esDeudora(tipo){ return tipo==='activo' || tipo==='costo' || tipo==='gasto'; }
+
+function addAsiento(fecha, descripcion, movimientos){
+  // movimientos: [{cuentaId, debe, haber}]
+  const totalDebe = round2(movimientos.reduce((a,m)=>a+num(m.debe),0));
+  const totalHaber = round2(movimientos.reduce((a,m)=>a+num(m.haber),0));
+  if(totalDebe !== totalHaber){
+    toast('Error: el asiento no está balanceado (Debe '+fmtMoney(totalDebe)+' / Haber '+fmtMoney(totalHaber)+'). No se guardó.', 'error');
+    return null;
+  }
+  if(totalDebe === 0){
+    return null; // nothing to record
+  }
+  const asiento = {
+    id: uid(),
+    numero: STATE.nextAsientoNum++,
+    fecha: fecha || todayStr(),
+    descripcion: descripcion,
+    movimientos: movimientos.map(m=>({cuentaId:m.cuentaId, debe:round2(num(m.debe)), haber:round2(num(m.haber))}))
+  };
+  STATE.asientos.push(asiento);
+  return asiento;
+}
+
+function medioPagoToCuenta(mp){
+  if(mp==='Efectivo') return 'caja';
+  if(mp==='Transferencia' || mp==='Tarjeta') return 'banco';
+  return 'caja';
+}
+
+function mapCategoriaToCuenta(categoria){
+  const norm = (categoria||'').toLowerCase();
+  const map = {
+    'gas':'gasto_gas', 'electricidad':'gasto_electricidad','agua':'gasto_agua',
+    'alquiler':'gasto_alquiler','transporte':'gasto_transporte','mantenimiento':'gasto_mantenimiento',
+    'mano de obra':'gasto_manodeobra','publicidad':'gasto_publicidad'
+  };
+  if(map[norm]) return map[norm];
+  const found = STATE.cuentas.find(c=>c.tipo==='gasto' && c.nombre.toLowerCase()===norm);
+  if(found) return found.id;
+  return 'gasto_otros';
+}
+
+function movimientosDeCuenta(cuentaId, desde, hasta){
+  const rows = [];
+  STATE.asientos.forEach(as=>{
+    if(desde && as.fecha < desde) return;
+    if(hasta && as.fecha > hasta) return;
+    as.movimientos.forEach(m=>{
+      if(m.cuentaId === cuentaId){
+        rows.push({fecha:as.fecha, numero:as.numero, concepto:as.descripcion, debe:m.debe, haber:m.haber});
+      }
+    });
+  });
+  rows.sort((a,b)=> a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : a.numero-b.numero));
+  return rows;
+}
+</script>
+<script>
+function saldoCuenta(cuentaId, desde, hasta){
+  const cuenta = getCuenta(cuentaId);
+  if(!cuenta) return 0;
+  const deudora = esDeudora(cuenta.tipo);
+  const rows = movimientosDeCuenta(cuentaId, desde, hasta);
+  let saldo = 0;
+  rows.forEach(r=>{ saldo += deudora ? (r.debe - r.haber) : (r.haber - r.debe); });
+  return round2(saldo);
+}
+function saldoTipo(tipo, desde, hasta){
+  return round2(STATE.cuentas.filter(c=>c.tipo===tipo).reduce((a,c)=>a+saldoCuenta(c.id,desde,hasta),0));
+}
+
+/* ---------------- INSUMOS ---------------- */
+function getInsumo(id){ return STATE.insumos.find(i=>i.id===id); }
+function costoBaseInsumo(insumo){
+  if(!insumo || !insumo.cantidadComprada) return 0;
+  return insumo.precioTotal / (insumo.cantidadComprada * UNITS[insumo.unidadCompra].factor);
+}
+function costoPorUnidadCompra(insumo){
+  if(!insumo || !insumo.cantidadComprada) return 0;
+  return insumo.precioTotal / insumo.cantidadComprada;
+}
+function crearInsumo(data){
+  // Cargar un insumo NO genera un asiento contable automático. El registro contable
+  // de la compra se hace aparte, a demanda, con el botón "Registrar compra".
+  const insumo = {
+    id: uid(),
+    nombre: data.nombre,
+    categoria: data.categoria,
+    unidadCompra: data.unidadCompra,
+    cantidadComprada: num(data.cantidadComprada),
+    precioTotal: parseMoneyInput(data.precioTotal),
+    proveedor: data.proveedor,
+    fecha: data.fecha,
+    stockActual: num(data.cantidadComprada),
+    stockMinimo: num(data.stockMinimo),
+    observaciones: data.observaciones||'',
+    historialPrecios: []
+  };
+  insumo.historialPrecios.push({
+    fecha: data.fecha, cantidad: insumo.cantidadComprada, precioTotal: insumo.precioTotal,
+    costoUnitarioCompra: costoPorUnidadCompra(insumo)
+  });
+  STATE.insumos.push(insumo);
+  return insumo;
+}
+function editarInsumo(id, data){
+  // Edición de datos para corregir errores de tipeo. No genera asientos ni compras nuevas:
+  // si se corrige la cantidad/precio de carga, se actualiza también el último registro
+  // del historial para que quede consistente.
+  const insumo = getInsumo(id);
+  if(!insumo) return;
+  insumo.nombre = data.nombre;
+  insumo.categoria = data.categoria;
+  insumo.proveedor = data.proveedor;
+  insumo.stockMinimo = num(data.stockMinimo);
+  insumo.observaciones = data.observaciones||'';
+  if(data.unidadCompra) insumo.unidadCompra = data.unidadCompra;
+  if(data.fecha) insumo.fecha = data.fecha;
+  if(data.cantidadComprada!==undefined && data.cantidadComprada!=='') insumo.cantidadComprada = num(data.cantidadComprada);
+  if(data.precioTotal!==undefined && data.precioTotal!==''){ insumo.precioTotal = parseMoneyInput(data.precioTotal); }
+  if(data.stockActual!==undefined && data.stockActual!=='') insumo.stockActual = num(data.stockActual);
+  if(insumo.historialPrecios.length){
+    const ultimo = insumo.historialPrecios[insumo.historialPrecios.length-1];
+    ultimo.fecha = insumo.fecha; ultimo.cantidad = insumo.cantidadComprada; ultimo.precioTotal = insumo.precioTotal;
+    ultimo.costoUnitarioCompra = costoPorUnidadCompra(insumo);
+  }
+}
+function registrarCompraInsumo(insumoId, data){
+  const insumo = getInsumo(insumoId);
+  if(!insumo) return;
+  const precioTotal = parseMoneyInput(data.precioTotal);
+  insumo.historialPrecios.push({
+    fecha:data.fecha, cantidad:num(data.cantidad), precioTotal:precioTotal,
+    costoUnitarioCompra: precioTotal/num(data.cantidad)
+  });
+  insumo.stockActual = round2(insumo.stockActual + num(data.cantidad));
+  insumo.cantidadComprada = num(data.cantidad);
+  insumo.precioTotal = precioTotal;
+  insumo.fecha = data.fecha;
+  if(data.proveedor) insumo.proveedor = data.proveedor;
+  const compra = {id:uid(), fecha:data.fecha, proveedor:insumo.proveedor, insumoId:insumo.id,
+    cantidad:num(data.cantidad), unidad:insumo.unidadCompra, precioTotal:precioTotal, medioPago:data.medioPago};
+  STATE.compras.push(compra);
+  addAsiento(data.fecha, 'Compra de '+insumo.nombre, [
+    {cuentaId:'insumos_cta', debe:precioTotal, haber:0},
+    {cuentaId:medioPagoToCuenta(data.medioPago), debe:0, haber:precioTotal}
+  ]);
+}
+function asentarCompraInicial(insumo, fecha, medioPago){
+  // Solo se usa para los datos de ejemplo: deja contablemente asentada la carga inicial
+  // de un insumo, sin duplicar stock ni historial (eso ya lo hizo crearInsumo).
+  const compra = {id:uid(), fecha:fecha, proveedor:insumo.proveedor, insumoId:insumo.id,
+    cantidad:insumo.cantidadComprada, unidad:insumo.unidadCompra, precioTotal:insumo.precioTotal, medioPago:medioPago};
+  STATE.compras.push(compra);
+  addAsiento(fecha, 'Compra inicial de '+insumo.nombre, [
+    {cuentaId:'insumos_cta', debe:insumo.precioTotal, haber:0},
+    {cuentaId:medioPagoToCuenta(medioPago), debe:0, haber:insumo.precioTotal}
+  ]);
+}
+function eliminarInsumo(id){
+  const enUso = STATE.productos.some(p=>p.receta.some(l=>l.insumoId===id));
+  if(enUso){ toast('No se puede eliminar: el insumo está usado en una receta.', 'error'); return false; }
+  STATE.insumos = STATE.insumos.filter(i=>i.id!==id);
+  return true;
+}
+function insumoAlertas(){
+  const alerts = [];
+  STATE.insumos.forEach(i=>{
+    if(i.stockActual <= i.stockMinimo){
+      alerts.push({tipo:'stock', insumo:i, msg: i.nombre+': stock bajo ('+i.stockActual+' '+UNITS[i.unidadCompra].label+', mínimo '+i.stockMinimo+')'});
+    }
+    const dias = (new Date()-new Date(i.fecha))/(1000*3600*24);
+    if(dias > 45){
+      alerts.push({tipo:'precio', insumo:i, msg: i.nombre+': precio sin actualizar hace '+Math.floor(dias)+' días'});
+    }
+  });
+  return alerts;
+}
+
+/* ---------------- PRODUCTOS / RECETAS ---------------- */
+function getProducto(id){ return STATE.productos.find(p=>p.id===id); }
+function crearProducto(data){
+  const producto = {
+    id: uid(), nombre:data.nombre, categoria:data.categoria, codigo:data.codigo,
+    receta: data.receta, rendimiento: num(data.rendimiento), precioVenta: num(data.precioVenta),
+    observaciones: data.observaciones||''
+  };
+  STATE.productos.push(producto);
+  return producto;
+}
+function editarProducto(id, data){
+  const p = getProducto(id);
+  if(!p) return;
+  Object.assign(p, {
+    nombre:data.nombre, categoria:data.categoria, codigo:data.codigo,
+    receta:data.receta, rendimiento:num(data.rendimiento), precioVenta:num(data.precioVenta),
+    observaciones:data.observaciones||''
+  });
+}
+function eliminarProducto(id){
+  const enUso = STATE.ventas.some(v=>v.productoId===id);
+  if(enUso){ toast('No se puede eliminar: el producto tiene ventas registradas.', 'error'); return false; }
+  STATE.productos = STATE.productos.filter(p=>p.id!==id);
+  STATE.costosIndirectos.forEach(ci=>{ ci.productoIds = ci.productoIds.filter(pid=>pid!==id); });
+  return true;
+}
+function costoDirectoProducto(producto){
+  let total = 0; const faltantes = [];
+  (producto.receta||[]).forEach(line=>{
+    const insumo = getInsumo(line.insumoId);
+    if(!insumo){ faltantes.push(line.insumoNombre||'insumo eliminado'); return; }
+    if(!unitsCompatible(line.unidad, insumo.unidadCompra)){ faltantes.push(insumo.nombre+' (unidad incompatible)'); return; }
+    total += costoBaseInsumo(insumo) * toBase(num(line.cantidad), line.unidad);
+  });
+  const unidad = producto.rendimiento>0 ? total/producto.rendimiento : 0;
+  return {total: round2(total), unitario: round2(unidad), faltantes};
+}
+function costoIndirectoUnitario(productoId){
+  let total = 0;
+  STATE.costosIndirectos.forEach(ci=>{
+    if(ci.asignacion==='general') return;
+    if((ci.asignacion==='producto' || ci.asignacion==='distribuido') && (ci.productoIds||[]).includes(productoId)){
+      const unidades = num(ci.unidadesEstimadas) || 1;
+      total += num(ci.monto)/unidades;
+    }
+  });
+  return round2(total);
+}
+function costoTotalUnitario(producto){
+  const directo = costoDirectoProducto(producto);
+  const indirecto = costoIndirectoUnitario(producto.id);
+  return round2(directo.unitario + indirecto);
+}
+function analisisProducto(producto){
+  const directo = costoDirectoProducto(producto);
+  const indirecto = costoIndirectoUnitario(producto.id);
+  const costo = round2(directo.unitario + indirecto);
+  const ganancia = round2(producto.precioVenta - costo);
+  const margen = producto.precioVenta ? round2(ganancia/producto.precioVenta*100) : 0;
+  const markup = costo ? round2(ganancia/costo*100) : 0;
+  return {costoDirecto:directo.unitario, costoIndirecto:indirecto, costo, ganancia, margen, markup, faltantes:directo.faltantes};
+}
+function precioSugerido(costo, margenPct){
+  const m = margenPct/100;
+  if(m>=1) return costo*10;
+  return round2(costo/(1-m));
+}
+
+/* ---------------- COSTOS INDIRECTOS ---------------- */
+function crearCostoIndirecto(data){
+  STATE.costosIndirectos.push({
+    id:uid(), nombre:data.nombre, monto:num(data.monto), asignacion:data.asignacion,
+    productoIds:data.productoIds||[], unidadesEstimadas:num(data.unidadesEstimadas), periodo:data.periodo||''
+  });
+}
+function editarCostoIndirecto(id,data){
+  const ci = STATE.costosIndirectos.find(c=>c.id===id);
+  if(!ci) return;
+  Object.assign(ci,{nombre:data.nombre, monto:num(data.monto), asignacion:data.asignacion,
+    productoIds:data.productoIds||[], unidadesEstimadas:num(data.unidadesEstimadas), periodo:data.periodo||''});
+}
+function eliminarCostoIndirecto(id){ STATE.costosIndirectos = STATE.costosIndirectos.filter(c=>c.id!==id); }
+
+/* ---------------- VENTAS ---------------- */
+function registrarVenta(data){
+  const producto = getProducto(data.productoId);
+  if(!producto){ toast('Producto no encontrado','error'); return null; }
+  const cantidad = num(data.cantidad);
+  const precioUnitario = num(data.precioUnitario);
+  const descuento = num(data.descuento);
+  const total = round2(cantidad*precioUnitario - descuento);
+  const costoUnitario = costoTotalUnitario(producto);
+  const costoTotal = round2(costoUnitario*cantidad);
+  const ganancia = round2(total-costoTotal);
+
+  // descontar stock de insumos usados
+  (producto.receta||[]).forEach(line=>{
+    const insumo = getInsumo(line.insumoId);
+    if(!insumo || !producto.rendimiento) return;
+    const cantidadPorUnidadProducto = num(line.cantidad)/producto.rendimiento;
+    const consumoTotalEnUnidadReceta = cantidadPorUnidadProducto*cantidad;
+    if(unitsCompatible(line.unidad, insumo.unidadCompra)){
+      const consumoEnUnidadInsumo = fromBase(toBase(consumoTotalEnUnidadReceta, line.unidad), insumo.unidadCompra);
+      insumo.stockActual = round2(insumo.stockActual - consumoEnUnidadInsumo);
+    }
+  });
+
+  const venta = {
+    id:uid(), fecha:data.fecha, productoId:producto.id, productoNombre:producto.nombre,
+    cantidad, precioUnitario, descuento, total, medioPago:data.medioPago,
+    cliente:data.cliente||'', observaciones:data.observaciones||'',
+    costoUnitario, costoTotal, ganancia
+  };
+  STATE.ventas.push(venta);
+
+  const cuentaCobro = medioPagoToCuenta(data.medioPago);
+  const movs = [
+    {cuentaId:cuentaCobro, debe:total, haber:0},
+    {cuentaId:'ventas', debe:0, haber:total}
+  ];
+  if(costoTotal>0){
+    movs.push({cuentaId:'cmv', debe:costoTotal, haber:0});
+    movs.push({cuentaId:'insumos_cta', debe:0, haber:costoTotal});
+  }
+  addAsiento(data.fecha, 'Venta de '+producto.nombre+' x'+cantidad, movs);
+  return venta;
+}
+function eliminarVenta(id){ STATE.ventas = STATE.ventas.filter(v=>v.id!==id); toast('Se eliminó el registro de venta. Nota: el asiento contable generado se mantiene en el Libro Diario para no alterar la trazabilidad; podés hacer un asiento manual de reverso si corresponde.'); }
+
+/* ---------------- GASTOS ---------------- */
+function registrarGasto(data){
+  const gasto = {
+    id:uid(), fecha:data.fecha, categoria:data.categoria, descripcion:data.descripcion,
+    importe:num(data.importe), medioPago:data.medioPago, observaciones:data.observaciones||''
+  };
+  STATE.gastos.push(gasto);
+  const cuentaGasto = mapCategoriaToCuenta(data.categoria);
+  addAsiento(data.fecha, 'Gasto de '+data.categoria+(data.descripcion?(' - '+data.descripcion):''), [
+    {cuentaId:cuentaGasto, debe:gasto.importe, haber:0},
+    {cuentaId:medioPagoToCuenta(data.medioPago), debe:0, haber:gasto.importe}
+  ]);
+  return gasto;
+}
+function eliminarGasto(id){ STATE.gastos = STATE.gastos.filter(g=>g.id!==id); }
+
+/* ---------------- PLAN DE CUENTAS ---------------- */
+function crearCuenta(data){
+  STATE.cuentas.push({id:'c_'+uid(), nombre:data.nombre, tipo:data.tipo, sistema:false});
+}
+function editarCuenta(id,data){
+  const c = getCuenta(id);
+  if(!c) return;
+  c.nombre = data.nombre; if(!c.sistema) c.tipo = data.tipo;
+}
+function eliminarCuenta(id){
+  const c = getCuenta(id);
+  if(!c || c.sistema){ toast('Esta cuenta del sistema no se puede eliminar.','error'); return; }
+  const enUso = STATE.asientos.some(a=>a.movimientos.some(m=>m.cuentaId===id));
+  if(enUso){ toast('No se puede eliminar: la cuenta tiene movimientos.', 'error'); return; }
+  STATE.cuentas = STATE.cuentas.filter(c=>c.id!==id);
+}
+</script>
+<script>
+/* ---------------- SEED DE DATOS DE PRUEBA ---------------- */
+function seedDataIfNeeded(){
+  if(STATE.seeded) return;
+  STATE.seeded = true;
+
+  addAsiento(daysAgoStr(40), 'Aporte de capital inicial', [
+    {cuentaId:'caja', debe:150000, haber:0},
+    {cuentaId:'capital', debe:0, haber:150000}
+  ]);
+
+  const harina = crearInsumo({nombre:'Harina 000', categoria:'Materia prima', unidadCompra:'kg', cantidadComprada:25, precioTotal:30000, proveedor:'Molino San Juan', fecha:daysAgoStr(38), stockMinimo:5, observaciones:''});
+  const levadura = crearInsumo({nombre:'Levadura', categoria:'Materia prima', unidadCompra:'kg', cantidadComprada:1, precioTotal:8000, proveedor:'Distribuidora Norte', fecha:daysAgoStr(38), stockMinimo:0.2});
+  const sal = crearInsumo({nombre:'Sal fina', categoria:'Materia prima', unidadCompra:'kg', cantidadComprada:5, precioTotal:2000, proveedor:'Distribuidora Norte', fecha:daysAgoStr(38), stockMinimo:1});
+  const azucar = crearInsumo({nombre:'Azúcar', categoria:'Materia prima', unidadCompra:'kg', cantidadComprada:10, precioTotal:9000, proveedor:'Distribuidora Norte', fecha:daysAgoStr(38), stockMinimo:2});
+  const grasa = crearInsumo({nombre:'Grasa vacuna', categoria:'Materia prima', unidadCompra:'kg', cantidadComprada:5, precioTotal:12000, proveedor:'Frigorífico Sur', fecha:daysAgoStr(38), stockMinimo:1});
+  const bolsas = crearInsumo({nombre:'Bolsas de papel', categoria:'Packaging', unidadCompra:'unidad', cantidadComprada:200, precioTotal:10000, proveedor:'Envases El Sol', fecha:daysAgoStr(38), stockMinimo:30});
+  const cajas = crearInsumo({nombre:'Cajas para facturas', categoria:'Packaging', unidadCompra:'unidad', cantidadComprada:100, precioTotal:8000, proveedor:'Envases El Sol', fecha:daysAgoStr(38), stockMinimo:15});
+
+  // dejamos asentada contablemente la carga inicial de cada insumo (esto es solo para el ejemplo;
+  // en el uso real, el asiento se genera cuando el usuario aprieta "Registrar compra")
+  [harina, levadura, sal, azucar, grasa, bolsas, cajas].forEach(i=> asentarCompraInicial(i, i.fecha, 'Efectivo'));
+
+  // segunda compra de harina para mostrar historial de precios
+  registrarCompraInsumo(harina.id, {fecha:daysAgoStr(10), cantidad:25, precioTotal:33500, proveedor:'Molino San Juan', medioPago:'Transferencia'});
+
+  const pan = crearProducto({
+    nombre:'Pan casero', categoria:'Panificados', codigo:'PAN-001', rendimiento:10, precioVenta:1200,
+    receta:[
+      {insumoId:harina.id, insumoNombre:harina.nombre, cantidad:1, unidad:'kg'},
+      {insumoId:levadura.id, insumoNombre:levadura.nombre, cantidad:20, unidad:'g'},
+      {insumoId:sal.id, insumoNombre:sal.nombre, cantidad:20, unidad:'g'},
+      {insumoId:bolsas.id, insumoNombre:bolsas.nombre, cantidad:1, unidad:'unidad'}
+    ], observaciones:'Receta base de pan casero.'
+  });
+
+  const panMolde = crearProducto({
+    nombre:'Pan de molde', categoria:'Panificados', codigo:'PAN-002', rendimiento:8, precioVenta:2200,
+    receta:[
+      {insumoId:harina.id, insumoNombre:harina.nombre, cantidad:1, unidad:'kg'},
+      {insumoId:levadura.id, insumoNombre:levadura.nombre, cantidad:20, unidad:'g'},
+      {insumoId:sal.id, insumoNombre:sal.nombre, cantidad:20, unidad:'g'},
+      {insumoId:azucar.id, insumoNombre:azucar.nombre, cantidad:30, unidad:'g'},
+      {insumoId:grasa.id, insumoNombre:grasa.nombre, cantidad:50, unidad:'g'},
+      {insumoId:bolsas.id, insumoNombre:bolsas.nombre, cantidad:1, unidad:'unidad'}
+    ], observaciones:''
+  });
+
+  const facturas = crearProducto({
+    nombre:'Facturas (docena)', categoria:'Facturas', codigo:'FAC-001', rendimiento:12, precioVenta:3600,
+    receta:[
+      {insumoId:harina.id, insumoNombre:harina.nombre, cantidad:0.5, unidad:'kg'},
+      {insumoId:levadura.id, insumoNombre:levadura.nombre, cantidad:10, unidad:'g'},
+      {insumoId:azucar.id, insumoNombre:azucar.nombre, cantidad:80, unidad:'g'},
+      {insumoId:grasa.id, insumoNombre:grasa.nombre, cantidad:150, unidad:'g'},
+      {insumoId:cajas.id, insumoNombre:cajas.nombre, cantidad:1, unidad:'unidad'}
+    ], observaciones:'Una caja cada 12 unidades.'
+  });
+
+  crearCostoIndirecto({nombre:'Gas del horno', monto:45000, asignacion:'distribuido', productoIds:[pan.id, panMolde.id, facturas.id], unidadesEstimadas:600, periodo:'Mensual'});
+  crearCostoIndirecto({nombre:'Electricidad', monto:30000, asignacion:'general', productoIds:[], unidadesEstimadas:0, periodo:'Mensual'});
+  crearCostoIndirecto({nombre:'Alquiler del local', monto:120000, asignacion:'general', productoIds:[], unidadesEstimadas:0, periodo:'Mensual'});
+
+  registrarGasto({fecha:daysAgoStr(20), categoria:'Alquiler', descripcion:'Alquiler del local', importe:120000, medioPago:'Transferencia'});
+  registrarGasto({fecha:daysAgoStr(15), categoria:'Electricidad', descripcion:'Factura de luz', importe:18500, medioPago:'Efectivo'});
+  registrarGasto({fecha:daysAgoStr(8), categoria:'Gas', descripcion:'Garrafa para el horno', importe:15000, medioPago:'Efectivo'});
+
+  registrarVenta({fecha:daysAgoStr(9), productoId:pan.id, cantidad:20, precioUnitario:1200, descuento:0, medioPago:'Efectivo', cliente:'', observaciones:''});
+  registrarVenta({fecha:daysAgoStr(6), productoId:panMolde.id, cantidad:6, precioUnitario:2200, descuento:0, medioPago:'Transferencia', cliente:'Almacén Don José', observaciones:''});
+  registrarVenta({fecha:daysAgoStr(3), productoId:facturas.id, cantidad:5, precioUnitario:3600, descuento:1000, medioPago:'Efectivo', cliente:'', observaciones:'Cliente frecuente'});
+  registrarVenta({fecha:daysAgoStr(1), productoId:pan.id, cantidad:15, precioUnitario:1200, descuento:0, medioPago:'Tarjeta', cliente:'', observaciones:''});
+  registrarVenta({fecha:todayStr(), productoId:panMolde.id, cantidad:4, precioUnitario:2200, descuento:0, medioPago:'Efectivo', cliente:'', observaciones:''});
+
+  saveState();
+}
+
+/* ---------------- BACKUP / EXPORT / IMPORT ---------------- */
+function downloadFile(filename, content, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportBackup(){
+  downloadFile('el_capitan_pan_backup_'+todayStr()+'.json', JSON.stringify(STATE, null, 2), 'application/json');
+  toast('Backup exportado', 'success');
+}
+function importBackupFile(file){
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data.insumos || !data.cuentas){ toast('El archivo no tiene el formato esperado.', 'error'); return; }
+      if(!confirmar('Esto reemplazará todos los datos actuales por los del archivo. ¿Continuar?')) return;
+      STATE = Object.assign(defaultState(), data);
+      saveState();
+      toast('Backup importado correctamente', 'success');
+      renderAll();
+    }catch(err){ toast('No se pudo leer el archivo: '+err.message, 'error'); }
+  };
+  reader.readAsText(file);
+}
+function wipeAllData(){
+  if(!confirmar('¿Seguro que querés borrar TODOS los datos? Esta acción no se puede deshacer.')) return;
+  if(!confirmar('Confirmá nuevamente: se perderán insumos, productos, ventas, compras, gastos y asientos.')) return;
+  STATE = defaultState();
+  STATE.seeded = true;
+  saveState();
+  toast('Todos los datos fueron eliminados', 'success');
+  renderAll();
+}
+function arrayToCSV(rows){
+  if(!rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const escCsv = v => { v = v==null? '': String(v); if(/[",\n;]/.test(v)) return '"'+v.replace(/"/g,'""')+'"'; return v; };
+  const lines = [headers.join(';')];
+  rows.forEach(r=> lines.push(headers.map(h=>escCsv(r[h])).join(';')));
+  return lines.join('\n');
+}
+function exportCSVTable(name){
+  let rows = [];
+  if(name==='insumos') rows = STATE.insumos.map(i=>({nombre:i.nombre, categoria:i.categoria, unidad:i.unidadCompra, cantidadComprada:i.cantidadComprada, precioTotal:i.precioTotal, costoUnitario:round2(costoPorUnidadCompra(i)), proveedor:i.proveedor, fecha:i.fecha, stockActual:i.stockActual, stockMinimo:i.stockMinimo}));
+  if(name==='productos') rows = STATE.productos.map(p=>{ const a=analisisProducto(p); return {nombre:p.nombre, categoria:p.categoria, codigo:p.codigo, rendimiento:p.rendimiento, costoUnitario:a.costo, precioVenta:p.precioVenta, ganancia:a.ganancia, margen:a.margen}; });
+  if(name==='ventas') rows = STATE.ventas.map(v=>({fecha:v.fecha, producto:v.productoNombre, cantidad:v.cantidad, precioUnitario:v.precioUnitario, descuento:v.descuento, total:v.total, costoTotal:v.costoTotal, ganancia:v.ganancia, medioPago:v.medioPago, cliente:v.cliente}));
+  if(name==='compras') rows = STATE.compras.map(c=>({fecha:c.fecha, proveedor:c.proveedor, insumo:(getInsumo(c.insumoId)||{}).nombre||'', cantidad:c.cantidad, unidad:c.unidad, precioTotal:c.precioTotal, medioPago:c.medioPago}));
+  if(name==='gastos') rows = STATE.gastos.map(g=>({fecha:g.fecha, categoria:g.categoria, descripcion:g.descripcion, importe:g.importe, medioPago:g.medioPago}));
+  if(name==='diario') { STATE.asientos.forEach(a=> a.movimientos.forEach(m=> rows.push({numero:a.numero, fecha:a.fecha, descripcion:a.descripcion, cuenta:(getCuenta(m.cuentaId)||{}).nombre||m.cuentaId, debe:m.debe, haber:m.haber}))); }
+  if(!rows.length){ toast('No hay datos para exportar en esta tabla.', 'error'); return; }
+  downloadFile(name+'_'+todayStr()+'.csv', arrayToCSV(rows), 'text/csv');
+}
+</script>
+<script>
+/* ---------------- NAVEGACIÓN ---------------- */
+const VIEW_TITLES = {
+  dashboard:['Panel principal','Resumen general del negocio'],
+  insumos:['Insumos','Materias primas, envases y packaging'],
+  productos:['Productos y recetas','Costo, precio y ganancia por producto'],
+  costos:['Costos indirectos','Gas, electricidad, alquiler y mano de obra'],
+  ventas:['Ventas','Registro de ventas del negocio'],
+  compras:['Compras','Compras de insumos'],
+  gastos:['Gastos generales','Gastos que no son compra de insumos'],
+  diario:['Libro Diario','Todos los asientos contables'],
+  mayor:['Libro Mayor','Movimientos y saldo por cuenta'],
+  cuentas:['Plan de Cuentas','Estructura contable del negocio'],
+  balance:['Balance','Situación patrimonial del negocio'],
+  resultados:['Estado de Resultados','Ingresos, costos y gastos'],
+  reportes:['Reportes y Backup','Exportar e importar información']
+};
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  document.getElementById('viewTitle').textContent = VIEW_TITLES[name][0];
+  document.getElementById('viewSub').textContent = VIEW_TITLES[name][1];
+  RENDERERS[name] && RENDERERS[name]();
+}
+
+let dashPeriod = 'mes';
+let dashCustomFrom = daysAgoStr(30);
+let dashCustomTo = todayStr();
+
+function periodRange(){
+  const hoy = todayStr();
+  if(dashPeriod==='hoy') return [hoy, hoy];
+  if(dashPeriod==='semana') return [daysAgoStr(7), hoy];
+  if(dashPeriod==='mes') return [daysAgoStr(30), hoy];
+  return [dashCustomFrom, dashCustomTo];
+}
+
+function renderDashboard(){
+  const chipsEl = document.getElementById('dashPeriodChips');
+  const chips = [['hoy','Hoy'],['semana','Esta semana'],['mes','Este mes'],['personalizado','Personalizado']];
+  chipsEl.innerHTML = chips.map(c=>'<button class="chip'+(dashPeriod===c[0]?' active':'')+'" onclick="dashPeriod=\''+c[0]+'\';renderDashboard();">'+c[1]+'</button>').join('')
+    + (dashPeriod==='personalizado' ? '<input type="date" value="'+dashCustomFrom+'" onchange="dashCustomFrom=this.value;renderDashboard();" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);">'
+      + '<input type="date" value="'+dashCustomTo+'" onchange="dashCustomTo=this.value;renderDashboard();" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);">' : '');
+
+  const [desde, hasta] = periodRange();
+  const ventasP = STATE.ventas.filter(v=>v.fecha>=desde && v.fecha<=hasta);
+  const comprasP = STATE.compras.filter(c=>c.fecha>=desde && c.fecha<=hasta);
+  const gastosP = STATE.gastos.filter(g=>g.fecha>=desde && g.fecha<=hasta);
+
+  const totalVentas = round2(ventasP.reduce((a,v)=>a+v.total,0));
+  const totalCostos = round2(ventasP.reduce((a,v)=>a+v.costoTotal,0));
+  const totalGastos = round2(gastosP.reduce((a,g)=>a+g.importe,0));
+  const gananciaBruta = round2(totalVentas-totalCostos);
+  const gananciaNeta = round2(gananciaBruta-totalGastos);
+  const margen = totalVentas? round2(gananciaNeta/totalVentas*100):0;
+  const cantProductos = ventasP.reduce((a,v)=>a+v.cantidad,0);
+  const totalCompras = round2(comprasP.reduce((a,c)=>a+c.precioTotal,0));
+  const caja = round2(saldoCuenta('caja') + saldoCuenta('banco'));
+
+  const cards = [
+    ['Ventas del período', fmtMoney(totalVentas), ''],
+    ['Costos', fmtMoney(totalCostos), ''],
+    ['Gastos', fmtMoney(totalGastos), ''],
+    ['Ganancia bruta', fmtMoney(gananciaBruta), gananciaBruta>=0?'pos':'neg'],
+    ['Ganancia neta', fmtMoney(gananciaNeta), gananciaNeta>=0?'pos':'neg'],
+    ['Margen de ganancia', fmtPct(margen), margen>=0?'pos':'neg'],
+    ['Productos vendidos', cantProductos, ''],
+    ['Total compras', fmtMoney(totalCompras), ''],
+    ['Caja y banco disponible', fmtMoney(caja), caja>=0?'pos':'neg']
+  ];
+  document.getElementById('dashCards').innerHTML = cards.map(c=>
+    '<div class="card"><h3>'+c[0]+'</h3><div class="value '+(c[2]||'')+'">'+c[1]+'</div></div>'
+  ).join('');
+
+  const maxV = Math.max(totalVentas, totalCostos, totalGastos, 1);
+  const bars = [['Ventas', totalVentas, '#c4801f'], ['Costos', totalCostos, '#bf3b30'], ['Gastos', totalGastos, '#2c5f8a']];
+  document.getElementById('dashChart1').innerHTML = '<div style="display:flex;gap:22px;align-items:flex-end;height:170px;padding-top:10px;">' +
+    bars.map(b=>{
+      const h = Math.round((b[1]/maxV)*140)+6;
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;">'+
+        '<div style="font-size:12px;font-weight:700;">'+fmtMoney(b[1])+'</div>'+
+        '<div style="width:100%;max-width:70px;height:'+h+'px;background:'+b[2]+';border-radius:6px 6px 0 0;"></div>'+
+        '<div style="font-size:12px;color:var(--muted);">'+b[0]+'</div></div>';
+    }).join('') + '</div>';
+
+  const alerts = insumoAlertas();
+  document.getElementById('dashAlerts').innerHTML = alerts.length ? ('<div style="display:flex;flex-direction:column;gap:8px;">' +
+    alerts.map(a=>'<div class="'+(a.tipo==='stock'?'warn-box':'hint-box')+'" style="margin-bottom:0;">'+esc(a.msg)+'</div>').join('') + '</div>')
+    : '<div class="emptystate"><div class="big">Todo en orden</div>Sin alertas de stock o precios desactualizados.</div>';
+}
+
+function renderInsumos(){
+  const t = document.getElementById('tblInsumos');
+  t.querySelector('thead').innerHTML = '<tr><th>Insumo</th><th>Categoría</th><th>Costo unitario</th><th>Stock</th><th>Proveedor</th><th>Últ. actualización</th><th></th></tr>';
+  const body = STATE.insumos.map(i=>{
+    const costoU = costoBaseInsumo(i);
+    const unidadBase = UNITS[i.unidadCompra].tipo==='peso'?'g':(UNITS[i.unidadCompra].tipo==='volumen'?'ml':'unidad');
+    const bajo = i.stockActual <= i.stockMinimo;
+    return '<tr>'+
+      '<td><b>'+esc(i.nombre)+'</b><div class="small muted">'+esc(i.observaciones||'')+'</div></td>'+
+      '<td>'+esc(i.categoria)+'</td>'+
+      '<td class="num">'+fmtMoney(costoU)+' / '+unidadBase+'<div class="small muted">'+fmtMoney(costoPorUnidadCompra(i))+' / '+i.unidadCompra+'</div></td>'+
+      '<td class="num">'+(bajo?'<span class="tag tag-red">':'<span class="tag tag-green">')+ i.stockActual+' '+i.unidadCompra+'</span></td>'+
+      '<td>'+esc(i.proveedor||'')+'</td>'+
+      '<td>'+fmtDate(i.fecha)+'</td>'+
+      '<td style="white-space:nowrap;">'+
+        '<button class="btn btn-sm" onclick="openCompraModal(\''+i.id+'\')">Registrar compra</button> '+
+        '<button class="btn btn-sm btn-ghost" onclick="openInsumoModal(\''+i.id+'\')">Editar</button> '+
+        '<button class="btn btn-sm btn-ghost" onclick="verHistorialInsumo(\''+i.id+'\')">Historial</button> '+
+        '<button class="btn btn-sm btn-danger" onclick="confirmarEliminarInsumo(\''+i.id+'\')">Eliminar</button>'+
+      '</td></tr>';
+  }).join('');
+  t.querySelector('tbody').innerHTML = body || '<tr><td colspan="7"><div class="emptystate">No hay insumos cargados todavía.</div></td></tr>';
+}
+function confirmarEliminarInsumo(id){
+  if(!confirmar('¿Eliminar este insumo?')) return;
+  if(eliminarInsumo(id)){ saveState(); renderInsumos(); toast('Insumo eliminado'); }
+}
+function verHistorialInsumo(id){
+  const i = getInsumo(id);
+  const rows = i.historialPrecios.slice().reverse().map(h=>
+    '<tr><td>'+fmtDate(h.fecha)+'</td><td class="num">'+h.cantidad+' '+i.unidadCompra+'</td><td class="num">'+fmtMoney(h.precioTotal)+'</td><td class="num">'+fmtMoney(h.costoUnitarioCompra)+'</td></tr>'
+  ).join('');
+  openModalRaw('Historial de precios — '+esc(i.nombre), '<div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Cantidad</th><th>Precio total</th><th>Costo unitario</th></tr></thead><tbody>'+rows+'</tbody></table></div>');
+}
+
+function renderProductos(){
+  const t = document.getElementById('tblProductos');
+  t.querySelector('thead').innerHTML = '<tr><th>Producto</th><th>Costo unitario</th><th>Precio de venta</th><th>Ganancia</th><th>Margen</th><th></th></tr>';
+  const body = STATE.productos.map(p=>{
+    const a = analisisProducto(p);
+    const warn = a.faltantes.length ? '<div class="small" style="color:var(--red);">Falta: '+esc(a.faltantes.join(', '))+'</div>' : '';
+    const bajoCosto = p.precioVenta < a.costo;
+    return '<tr>'+
+      '<td><b>'+esc(p.nombre)+'</b><div class="small muted">'+esc(p.codigo||'')+' · rinde '+p.rendimiento+'</div>'+warn+'</td>'+
+      '<td class="num">'+fmtMoney(a.costo)+(a.costo<=0?' <span class="tag tag-amber">costo cero</span>':'')+'</td>'+
+      '<td class="num">'+fmtMoney(p.precioVenta)+'</td>'+
+      '<td class="num '+(a.ganancia>=0?'':'')+'">'+(a.ganancia>=0?'<span class="tag tag-green">':'<span class="tag tag-red">')+fmtMoney(a.ganancia)+'</span></td>'+
+      '<td class="num">'+fmtPct(a.margen)+(bajoCosto?' <span class="tag tag-red">bajo costo</span>':'')+'</td>'+
+      '<td style="white-space:nowrap;">'+
+        '<button class="btn btn-sm" onclick="verDetalleProducto(\''+p.id+'\')">Detalle</button> '+
+        '<button class="btn btn-sm btn-ghost" onclick="openProductoModal(\''+p.id+'\')">Editar</button> '+
+        '<button class="btn btn-sm btn-danger" onclick="confirmarEliminarProducto(\''+p.id+'\')">Eliminar</button>'+
+      '</td></tr>';
+  }).join('');
+  t.querySelector('tbody').innerHTML = body || '<tr><td colspan="6"><div class="emptystate">No hay productos cargados todavía.</div></td></tr>';
+}
+function confirmarEliminarProducto(id){
+  if(!confirmar('¿Eliminar este producto?')) return;
+  if(eliminarProducto(id)){ saveState(); renderProductos(); toast('Producto eliminado'); }
+}
+function verDetalleProducto(id){
+  const p = getProducto(id);
+  const a = analisisProducto(p);
+  const lineas = (p.receta||[]).map(l=>{
+    const ins = getInsumo(l.insumoId);
+    const costoLinea = ins ? costoBaseInsumo(ins)*toBase(num(l.cantidad), l.unidad) : 0;
+    return '<tr><td>'+esc(ins?ins.nombre:(l.insumoNombre||'—'))+'</td><td class="num">'+l.cantidad+' '+l.unidad+'</td><td class="num">'+fmtMoney(costoLinea)+'</td></tr>';
+  }).join('');
+  const html = ''+
+    '<div class="tablewrap"><table><thead><tr><th>Ingrediente</th><th>Cantidad</th><th>Costo</th></tr></thead><tbody>'+lineas+'</tbody></table></div>'+
+    '<div class="divider"></div>'+
+    '<div class="form-grid cols-3">'+
+      '<div class="card"><h3>Costo directo / unidad</h3><div class="value">'+fmtMoney(a.costoDirecto)+'</div></div>'+
+      '<div class="card"><h3>Costo indirecto / unidad</h3><div class="value">'+fmtMoney(a.costoIndirecto)+'</div></div>'+
+      '<div class="card"><h3>Costo total / unidad</h3><div class="value">'+fmtMoney(a.costo)+'</div></div>'+
+      '<div class="card"><h3>Precio de venta</h3><div class="value">'+fmtMoney(p.precioVenta)+'</div></div>'+
+      '<div class="card"><h3>Ganancia / unidad</h3><div class="value '+(a.ganancia>=0?'pos':'neg')+'">'+fmtMoney(a.ganancia)+'</div></div>'+
+      '<div class="card"><h3>Margen / Markup</h3><div class="value">'+fmtPct(a.margen)+' / '+fmtPct(a.markup)+'</div></div>'+
+    '</div>'+
+    '<div class="divider"></div>'+
+    '<div class="hint-box"><b>Margen</b> = ganancia sobre el precio de venta. <b>Markup</b> = ganancia sobre el costo. Son distintos: un markup del 50% no equivale a un margen del 50%.</div>'+
+    '<div class="field"><label>Calcular precio sugerido según margen objetivo (%)</label><div class="row"><input type="number" id="margenObjetivoInput" value="40" style="max-width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;"><button class="btn btn-primary" onclick="calcularPrecioSugerido(\''+p.id+'\')">Calcular</button></div><div id="precioSugeridoResult" class="small" style="margin-top:6px;"></div></div>';
+  openModalRaw('Detalle — '+esc(p.nombre), html);
+}
+function calcularPrecioSugerido(productoId){
+  const p = getProducto(productoId);
+  const a = analisisProducto(p);
+  const margen = num(document.getElementById('margenObjetivoInput').value);
+  const sugerido = precioSugerido(a.costo, margen);
+  document.getElementById('precioSugeridoResult').innerHTML = 'Precio sugerido: <b>'+fmtMoney(sugerido)+'</b> &nbsp; '+
+    '<button class="btn btn-sm btn-primary" onclick="aplicarPrecioSugerido(\''+productoId+'\','+sugerido+')">Usar este precio</button>';
+}
+function aplicarPrecioSugerido(productoId, precio){
+  const p = getProducto(productoId);
+  p.precioVenta = round2(precio);
+  saveState();
+  closeModal();
+  renderProductos();
+  toast('Precio de venta actualizado', 'success');
+}
+
+function renderCostos(){
+  const t = document.getElementById('tblCostos');
+  t.querySelector('thead').innerHTML = '<tr><th>Costo</th><th>Monto</th><th>Asignación</th><th>Unidades estimadas</th><th>Costo / unidad</th><th></th></tr>';
+  const body = STATE.costosIndirectos.map(ci=>{
+    const asigTxt = ci.asignacion==='general' ? 'Gasto general' : (ci.asignacion==='producto'?'Un producto':'Varios productos');
+    const productos = (ci.productoIds||[]).map(id=>{const p=getProducto(id); return p?p.nombre:'';}).filter(Boolean).join(', ');
+    const porUnidad = ci.asignacion==='general' ? '—' : fmtMoney(num(ci.monto)/(num(ci.unidadesEstimadas)||1));
+    return '<tr><td><b>'+esc(ci.nombre)+'</b><div class="small muted">'+esc(ci.periodo||'')+'</div></td>'+
+      '<td class="num">'+fmtMoney(ci.monto)+'</td>'+
+      '<td>'+asigTxt+(productos?('<div class="small muted">'+esc(productos)+'</div>'):'')+'</td>'+
+      '<td class="num">'+(ci.asignacion==='general'?'—':ci.unidadesEstimadas)+'</td>'+
+      '<td class="num">'+porUnidad+'</td>'+
+      '<td style="white-space:nowrap;"><button class="btn btn-sm btn-ghost" onclick="openCostoIndModal(\''+ci.id+'\')">Editar</button> '+
+      '<button class="btn btn-sm btn-danger" onclick="if(confirmar(\'¿Eliminar este costo?\')){eliminarCostoIndirecto(\''+ci.id+'\');saveState();renderCostos();}">Eliminar</button></td></tr>';
+  }).join('');
+  t.querySelector('tbody').innerHTML = body || '<tr><td colspan="6"><div class="emptystate">No hay costos indirectos cargados.</div></td></tr>';
+}
+
+function renderVentas(){
+  const t = document.getElementById('tblVentas');
+  t.querySelector('thead').innerHTML = '<tr><th>Fecha</th><th>Producto</th><th>Cant.</th><th>Precio unit.</th><th>Total</th><th>Costo</th><th>Ganancia</th><th>Medio de pago</th><th></th></tr>';
+  const rows = STATE.ventas.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const body = rows.map(v=>
+    '<tr><td>'+fmtDate(v.fecha)+'</td><td>'+esc(v.productoNombre)+(v.cliente?('<div class="small muted">'+esc(v.cliente)+'</div>'):'')+'</td>'+
+    '<td class="num">'+v.cantidad+'</td><td class="num">'+fmtMoney(v.precioUnitario)+'</td><td class="num">'+fmtMoney(v.total)+'</td>'+
+    '<td class="num">'+fmtMoney(v.costoTotal)+'</td><td class="num">'+(v.ganancia>=0?'<span class="tag tag-green">':'<span class="tag tag-red">')+fmtMoney(v.ganancia)+'</span></td>'+
+    '<td>'+esc(v.medioPago)+'</td>'+
+    '<td><button class="btn btn-sm btn-danger" onclick="if(confirmar(\'¿Eliminar esta venta?\')){eliminarVenta(\''+v.id+'\');saveState();renderVentas();}">Eliminar</button></td></tr>'
+  ).join('');
+  t.querySelector('tbody').innerHTML = body || '<tr><td colspan="9"><div class="emptystate">No hay ventas registradas.</div></td></tr>';
+}
+
+function renderCompras(){
+  const t = document.getElementById('tblCompras');
+  t.querySelector('thead').innerHTML = '<tr><th>Fecha</th><th>Insumo</th><th>Proveedor</th><th>Cantidad</th><th>Precio total</th><th>Medio de pago</th></tr>';
+  const rows = STATE.compras.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const body = rows.map(c=>{
+    const ins = getInsumo(c.insumoId);
+    return '<tr><td>'+fmtDate(c.fecha)+'</td><td>'+esc(ins?ins.nombre:'(eliminado)')+'</td><td>'+esc(c.proveedor||'')+'</td>'+
+      '<td class="num">'+c.cantidad+' '+c.unidad+'</td><td class="num">'+fmtMoney(c.precioTotal)+'</td><td>'+esc(c.medioPago)+'</td></tr>';
+  }).join('');
+  t.querySelector('tbody').innerHTML = body || '<tr><td colspan="6"><div class="emptystate">No hay compras registradas.</div></td></tr>';
+}
+
+function renderGastos(){
+  const t = document.getElementById('tblGastos');
+  t.querySelector('thead').innerHTML = '<tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Importe</th><th>Medio de pago</th><th></th></tr>';
+  const rows = STATE.gastos.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const body = rows.map(g=>
+    '<tr><td>'+fmtDate(g.fecha)+'</td><td>'+esc(g.categoria)+'</td><td>'+esc(g.descripcion||'')+'</td>'+
+    '<td class="num">'+fmtMoney(g.importe)+'</td><td>'+esc(g.medioPago)+'</td>'+
+    '<td><button class="btn btn-sm btn-danger" onclick="if(confirmar(\'¿Eliminar este gasto?\')){eliminarGasto(\''+g.id+'\');saveState();renderGastos();}">Eliminar</button></td></tr>'
+  ).join('');
+  t.querySelector('tbody').innerHTML = body || '<tr><td colspan="6"><div class="emptystate">No hay gastos registrados.</div></td></tr>';
+}
+
+function renderDiario(){
+  const t = document.getElementById('tblDiario');
+  t.querySelector('thead').innerHTML = '<tr><th>N°</th><th>Fecha</th><th>Cuenta</th><th>Descripción</th><th>Debe</th><th>Haber</th></tr>';
+  const asientos = STATE.asientos.slice().sort((a,b)=> a.fecha===b.fecha ? a.numero-b.numero : (a.fecha<b.fecha?-1:1));
+  let rows = '';
+  asientos.forEach(a=>{
+    a.movimientos.forEach((m,idx)=>{
+      rows += '<tr>'+(idx===0?('<td rowspan="'+a.movimientos.length+'">'+a.numero+'</td><td rowspan="'+a.movimientos.length+'">'+fmtDate(a.fecha)+'</td>'):'')+
+        '<td>'+esc((getCuenta(m.cuentaId)||{}).nombre||m.cuentaId)+'</td>'+
+        (idx===0?('<td rowspan="'+a.movimientos.length+'">'+esc(a.descripcion)+'</td>'):'')+
+        '<td class="num">'+(m.debe?fmtMoney(m.debe):'')+'</td><td class="num">'+(m.haber?fmtMoney(m.haber):'')+'</td></tr>';
+    });
+  });
+  t.querySelector('tbody').innerHTML = rows || '<tr><td colspan="6"><div class="emptystate">Todavía no hay asientos contables.</div></td></tr>';
+}
+
+function renderMayorSelect(){
+  const sel = document.getElementById('mayorCuentaSelect');
+  const current = sel.value;
+  sel.innerHTML = STATE.cuentas.map(c=>'<option value="'+c.id+'">'+esc(c.nombre)+' ('+c.tipo+')</option>').join('');
+  if(current && getCuenta(current)) sel.value = current;
+}
+function renderMayor(){
+  renderMayorSelect();
+  renderMayorTable();
+}
+function renderMayorTable(){
+  const cuentaId = document.getElementById('mayorCuentaSelect').value || STATE.cuentas[0].id;
+  const cuenta = getCuenta(cuentaId);
+  const deudora = esDeudora(cuenta.tipo);
+  const rows = movimientosDeCuenta(cuentaId);
+  let saldo = 0; let totalDebe=0, totalHaber=0;
+  const body = rows.map(r=>{
+    saldo += deudora ? (r.debe-r.haber) : (r.haber-r.debe);
+    totalDebe += r.debe; totalHaber += r.haber;
+    return '<tr><td>'+fmtDate(r.fecha)+'</td><td>'+esc(r.concepto)+'</td><td class="num">'+(r.debe?fmtMoney(r.debe):'')+'</td><td class="num">'+(r.haber?fmtMoney(r.haber):'')+'</td><td class="num">'+fmtMoney(saldo)+'</td></tr>';
+  }).join('');
+  document.getElementById('tblMayor').querySelector('thead') ? null : null;
+  document.getElementById('tblMayor').innerHTML = '<thead><tr><th>Fecha</th><th>Concepto</th><th>Debe</th><th>Haber</th><th>Saldo</th></tr></thead><tbody>'+
+    (body || '<tr><td colspan="5"><div class="emptystate">Esta cuenta no tiene movimientos.</div></td></tr>') + '</tbody>';
+  document.getElementById('mayorTotales').innerHTML = [
+    ['Saldo inicial', fmtMoney(0)], ['Total Debe', fmtMoney(round2(totalDebe))],
+    ['Total Haber', fmtMoney(round2(totalHaber))], ['Saldo final', fmtMoney(round2(saldo))]
+  ].map(c=>'<div class="card"><h3>'+c[0]+'</h3><div class="value">'+c[1]+'</div></div>').join('');
+}
+
+function renderCuentas(){
+  const t = document.getElementById('tblCuentas');
+  t.querySelector('thead').innerHTML = '<tr><th>Cuenta</th><th>Tipo</th><th>Saldo</th><th></th></tr>';
+  const orden = {activo:0,pasivo:1,patrimonio:2,ingreso:3,costo:4,gasto:5};
+  const rows = STATE.cuentas.slice().sort((a,b)=>orden[a.tipo]-orden[b.tipo]);
+  const body = rows.map(c=>
+    '<tr><td><b>'+esc(c.nombre)+'</b>'+(c.sistema?' <span class="tag tag-gray">sistema</span>':'')+'</td><td style="text-transform:capitalize;">'+c.tipo+'</td>'+
+    '<td class="num">'+fmtMoney(saldoCuenta(c.id))+'</td>'+
+    '<td style="white-space:nowrap;"><button class="btn btn-sm btn-ghost" onclick="openCuentaModal(\''+c.id+'\')">Editar</button> '+
+    (c.sistema?'':'<button class="btn btn-sm btn-danger" onclick="eliminarCuenta(\''+c.id+'\');saveState();renderCuentas();">Eliminar</button>')+'</td></tr>'
+  ).join('');
+  t.querySelector('tbody').innerHTML = body;
+}
+
+function renderBalance(){
+  const activoCuentas = STATE.cuentas.filter(c=>c.tipo==='activo');
+  const pasivoCuentas = STATE.cuentas.filter(c=>c.tipo==='pasivo');
+  const totalActivo = round2(activoCuentas.reduce((a,c)=>a+saldoCuenta(c.id),0));
+  const totalPasivo = round2(pasivoCuentas.reduce((a,c)=>a+saldoCuenta(c.id),0));
+  const capitalSaldo = round2(saldoCuenta('capital')+saldoCuenta('resultados_acumulados'));
+  const ingresos = saldoTipo('ingreso'); const costos = saldoTipo('costo'); const gastos = saldoTipo('gasto');
+  const resultado = round2(ingresos-costos-gastos);
+  const totalPN = round2(capitalSaldo+resultado);
+
+  document.getElementById('tblBalanceActivo').innerHTML = activoCuentas.map(c=>
+    '<tr><td>'+esc(c.nombre)+'</td><td class="num">'+fmtMoney(saldoCuenta(c.id))+'</td></tr>').join('') +
+    '<tr style="font-weight:700;border-top:2px solid var(--border);"><td>Total Activo</td><td class="num">'+fmtMoney(totalActivo)+'</td></tr>';
+
+  document.getElementById('tblBalancePasivo').innerHTML = pasivoCuentas.map(c=>
+    '<tr><td>'+esc(c.nombre)+'</td><td class="num">'+fmtMoney(saldoCuenta(c.id))+'</td></tr>').join('') +
+    '<tr style="border-top:1px solid var(--border);"><td style="padding-top:12px;font-weight:600;">Total Pasivo</td><td class="num" style="padding-top:12px;font-weight:600;">'+fmtMoney(totalPasivo)+'</td></tr>'+
+    '<tr><td>Capital</td><td class="num">'+fmtMoney(capitalSaldo)+'</td></tr>'+
+    '<tr><td>Resultado del ejercicio</td><td class="num">'+fmtMoney(resultado)+'</td></tr>'+
+    '<tr style="font-weight:600;"><td>Total Patrimonio Neto</td><td class="num">'+fmtMoney(totalPN)+'</td></tr>'+
+    '<tr style="font-weight:700;border-top:2px solid var(--border);"><td>Total Pasivo + PN</td><td class="num">'+fmtMoney(round2(totalPasivo+totalPN))+'</td></tr>';
+
+  const diff = round2(totalActivo - (totalPasivo+totalPN));
+  document.getElementById('balanceCheck').innerHTML = Math.abs(diff)<0.01 ?
+    '<div class="bal-check bal-ok">✓ El balance está cuadrado: Activo = Pasivo + Patrimonio Neto ('+fmtMoney(totalActivo)+')</div>' :
+    '<div class="bal-check bal-bad">⚠ El balance no está cuadrado. Diferencia: '+fmtMoney(diff)+'</div>';
+}
+
+function renderResultados(){
+  const ingresos = saldoTipo('ingreso'); const costos = saldoTipo('costo'); const gastos = saldoTipo('gasto');
+  const gananciaBruta = round2(ingresos-costos);
+  const resultadoNeto = round2(gananciaBruta-gastos);
+  const margenBruto = ingresos? round2(gananciaBruta/ingresos*100):0;
+  const margenNeto = ingresos? round2(resultadoNeto/ingresos*100):0;
+  document.getElementById('tblResultados').innerHTML = ''+
+    '<tr><td>Ingresos por ventas</td><td class="num">'+fmtMoney(ingresos)+'</td></tr>'+
+    '<tr><td>&nbsp;&nbsp;− Costo de ventas</td><td class="num">'+fmtMoney(costos)+'</td></tr>'+
+    '<tr style="font-weight:700;border-top:1px solid var(--border);"><td>= Ganancia bruta</td><td class="num">'+fmtMoney(gananciaBruta)+'</td></tr>'+
+    '<tr><td class="small muted">Margen bruto</td><td class="num small muted">'+fmtPct(margenBruto)+'</td></tr>'+
+    '<tr><td>&nbsp;&nbsp;− Gastos</td><td class="num">'+fmtMoney(gastos)+'</td></tr>'+
+    '<tr style="font-weight:700;border-top:2px solid var(--border);font-size:15px;"><td>= Resultado neto</td><td class="num '+(resultadoNeto>=0?'pos':'neg')+'" style="color:'+(resultadoNeto>=0?'var(--green)':'var(--red)')+'">'+fmtMoney(resultadoNeto)+'</td></tr>'+
+    '<tr><td class="small muted">Margen neto</td><td class="num small muted">'+fmtPct(margenNeto)+'</td></tr>';
+}
+
+function renderReportes(){
+  const tables = [['insumos','Insumos'],['productos','Productos'],['ventas','Ventas'],['compras','Compras'],['gastos','Gastos'],['diario','Libro Diario']];
+  document.getElementById('exportChips').innerHTML = tables.map(t=>'<button class="chip" onclick="exportCSVTable(\''+t[0]+'\')">Exportar '+t[1]+' (CSV)</button>').join('');
+}
+
+const RENDERERS = {
+  dashboard:renderDashboard, insumos:renderInsumos, productos:renderProductos, costos:renderCostos,
+  ventas:renderVentas, compras:renderCompras, gastos:renderGastos, diario:renderDiario, mayor:renderMayor,
+  cuentas:renderCuentas, balance:renderBalance, resultados:renderResultados, reportes:renderReportes
+};
+function renderAll(){
+  Object.values(RENDERERS).forEach(fn=>{ try{ fn(); }catch(e){ console.error(e); } });
+}
+</script>
+<script>
+/* ---------------- MODAL GENERICO ---------------- */
+function openModalRaw(title, bodyHtml){
+  document.getElementById('modalBox').innerHTML =
+    '<button class="modal-close" onclick="closeModal()">&times;</button>'+
+    '<h2>'+title+'</h2><div style="clear:both;">'+bodyHtml+'</div>';
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeModal(); });
+
+/* ---------------- MODAL: INSUMO ---------------- */
+function openInsumoModal(id){
+  const insumo = id ? getInsumo(id) : null;
+  const isEdit = !!insumo;
+  const html = ''+
+    '<div class="modal-sub">'+(isEdit?'Corregí lo que necesites, incluso cantidad, precio o unidad. Esto no genera ningún asiento contable ni compra nueva; para eso usá "Registrar compra".':'Cargar un insumo define su costo y stock inicial. No genera ningún asiento contable: para dejarlo asentado como compra (Caja/Banco) usá después el botón "Registrar compra".')+'</div>'+
+    '<form id="formInsumo">'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Nombre</label><input required name="nombre" value="'+(insumo?esc(insumo.nombre):'')+'"></div>'+
+      '<div class="field"><label>Categoría</label>'+categorySelectHtml('insumoCategoriaSel', categoriasInsumoList(), insumo?insumo.categoria:null)+'</div>'+
+      '<div class="field"><label>Unidad de compra</label><select name="unidadCompra">'+
+        Object.keys(UNITS).map(u=>'<option value="'+u+'" '+(insumo&&insumo.unidadCompra===u?'selected':'')+'>'+u+'</option>').join('')+'</select></div>'+
+      '<div class="field"><label>Cantidad comprada</label><input required type="number" min="0.001" step="0.001" name="cantidadComprada" value="'+(insumo?insumo.cantidadComprada:'')+'"></div>'+
+      '<div class="field"><label>Precio total de compra</label><input required class="money-input" inputmode="decimal" name="precioTotal" value="'+(insumo?moneyDisplayValue(insumo.precioTotal):'')+'"></div>'+
+      '<div class="field"><label>Fecha de carga</label><input required type="date" name="fecha" value="'+(insumo?insumo.fecha:todayStr())+'"></div>'+
+      (isEdit?('<div class="field"><label>Stock actual</label><input required type="number" min="0" step="0.001" name="stockActual" value="'+insumo.stockActual+'"></div>'):'')+
+      '<div class="field"><label>Proveedor <span class="opt">(opcional)</span></label><input name="proveedor" value="'+(insumo?esc(insumo.proveedor||''):'')+'"></div>'+
+      '<div class="field"><label>Stock mínimo</label><input required type="number" min="0" step="0.001" name="stockMinimo" value="'+(insumo?insumo.stockMinimo:'0')+'"></div>'+
+      '<div class="field full"><label>Observaciones <span class="opt">(opcional)</span></label><textarea name="observaciones">'+(insumo?esc(insumo.observaciones||''):'')+'</textarea></div>'+
+    '</div>'+
+    '<div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>'+
+    '</form>';
+  openModalRaw(isEdit?'Editar insumo':'Nuevo insumo', html);
+  document.getElementById('formInsumo').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    data.categoria = categorySelectValue('insumoCategoriaSel');
+    if(!data.categoria){ toast('Elegí o escribí una categoría.', 'error'); return; }
+    if(num(data.cantidadComprada)<=0){ toast('La cantidad debe ser mayor a cero.', 'error'); return; }
+    if(parseMoneyInput(data.precioTotal)<=0){ toast('El precio debe ser mayor a cero.', 'error'); return; }
+    if(!isEdit){
+      crearInsumo(data);
+      toast('Insumo cargado', 'success');
+    }else{
+      editarInsumo(id, data);
+      toast('Insumo actualizado', 'success');
+    }
+    saveState(); closeModal(); renderInsumos(); if(RENDERERS.productos) renderProductos();
+  });
+}
+
+/* ---------------- MODAL: COMPRA DE INSUMO ---------------- */
+function openCompraModal(insumoIdFijo){
+  const html = ''+
+    '<div class="modal-sub">Registrar una nueva compra actualiza el precio, el stock y el historial del insumo.</div>'+
+    '<form id="formCompra"><div class="form-grid">'+
+      '<div class="field full"><label>Insumo</label><select required name="insumoId" '+(insumoIdFijo?'disabled':'')+'>'+
+        STATE.insumos.map(i=>'<option value="'+i.id+'" '+(i.id===insumoIdFijo?'selected':'')+'>'+esc(i.nombre)+' ('+i.unidadCompra+')</option>').join('')+
+      '</select></div>'+
+      (insumoIdFijo?'<input type="hidden" name="insumoId" value="'+insumoIdFijo+'">':'')+
+      '<div class="field"><label>Cantidad comprada</label><input required type="number" min="0.001" step="0.001" name="cantidad"></div>'+
+      '<div class="field"><label>Precio total de compra</label><input required class="money-input" inputmode="decimal" name="precioTotal" placeholder="0,00"></div>'+
+      '<div class="field"><label>Proveedor</label><input name="proveedor"></div>'+
+      '<div class="field"><label>Medio de pago</label><select name="medioPago"><option>Efectivo</option><option>Transferencia</option><option>Tarjeta</option><option>Otro</option></select></div>'+
+      '<div class="field full"><label>Fecha</label><input required type="date" name="fecha" value="'+todayStr()+'"></div>'+
+    '</div><div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Registrar compra</button></div></form>';
+  openModalRaw('Registrar compra de insumo', html);
+  document.getElementById('formCompra').addEventListener('submit', e=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    if(num(data.cantidad)<=0 || parseMoneyInput(data.precioTotal)<=0){ toast('Cantidad y precio deben ser mayores a cero.', 'error'); return; }
+    registrarCompraInsumo(data.insumoId, data);
+    saveState(); closeModal(); renderInsumos(); renderCompras(); if(document.getElementById('view-productos').classList.contains('active')) renderProductos();
+    toast('Compra registrada', 'success');
+  });
+}
+
+/* ---------------- MODAL: PRODUCTO / RECETA ---------------- */
+let recetaTempLines = [];
+function openProductoModal(id){
+  const producto = id ? getProducto(id) : null;
+  recetaTempLines = producto ? JSON.parse(JSON.stringify(producto.receta)) : [];
+  const html = ''+
+    '<form id="formProducto"><div class="form-grid">'+
+      '<div class="field"><label>Nombre</label><input required name="nombre" value="'+(producto?esc(producto.nombre):'')+'"></div>'+
+      '<div class="field"><label>Categoría</label>'+categorySelectHtml('productoCategoriaSel', categoriasProductoList(), producto?producto.categoria:null)+'</div>'+
+      '<div class="field"><label>Código <span class="opt">(opcional)</span></label><input name="codigo" value="'+(producto?esc(producto.codigo||''):'')+'"></div>'+
+      '<div class="field"><label>Rendimiento (unidades que produce la receta)</label><input required type="number" min="1" step="1" name="rendimiento" value="'+(producto?producto.rendimiento:'')+'"></div>'+
+      '<div class="field full"><label>Precio de venta por unidad</label><input required class="money-input" inputmode="decimal" name="precioVenta" value="'+(producto?moneyDisplayValue(producto.precioVenta):'')+'"></div>'+
+    '</div>'+
+    '<div class="divider"></div>'+
+    '<label style="font-size:12px;font-weight:600;color:#3d4451;">Receta (ingredientes por lote)</label>'+
+    '<div id="recetaRows" style="margin-top:8px;"></div>'+
+    '<button type="button" class="btn btn-sm" onclick="addRecetaRow()">+ Agregar ingrediente</button>'+
+    '<div class="divider"></div>'+
+    '<div class="field full"><label>Observaciones <span class="opt">(opcional)</span></label><textarea name="observaciones">'+(producto?esc(producto.observaciones||''):'')+'</textarea></div>'+
+    '<div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar producto</button></div>'+
+    '</form>';
+  openModalRaw(producto?'Editar producto':'Nuevo producto', html);
+  renderRecetaRows();
+  document.getElementById('formProducto').addEventListener('submit', e=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.categoria = categorySelectValue('productoCategoriaSel');
+    if(!data.categoria){ toast('Elegí o escribí una categoría.', 'error'); return; }
+    if(!recetaTempLines.length){ if(!confirmar('No cargaste ingredientes: el costo del producto será cero. ¿Continuar igual?')) return; }
+    data.precioVenta = parseMoneyInput(data.precioVenta);
+    if(data.precioVenta < 0){ toast('El precio no puede ser negativo.', 'error'); return; }
+    data.receta = recetaTempLines.map(l=>({insumoId:l.insumoId, insumoNombre:(getInsumo(l.insumoId)||{}).nombre, cantidad:num(l.cantidad), unidad:l.unidad}));
+    if(producto){ editarProducto(id, data); toast('Producto actualizado', 'success'); }
+    else { crearProducto(data); toast('Producto creado', 'success'); }
+    saveState(); closeModal(); renderProductos();
+  });
+}
+function renderRecetaRows(){
+  const wrap = document.getElementById('recetaRows');
+  wrap.innerHTML = recetaTempLines.map((l,idx)=>{
+    const insumo = getInsumo(l.insumoId);
+    const tipo = insumo ? UNITS[insumo.unidadCompra].tipo : 'peso';
+    const opciones = unitOptionsFor(tipo);
+    return '<div class="recipe-row">'+
+      '<select onchange="recetaTempLines['+idx+'].insumoId=this.value; recetaTempLines['+idx+'].unidad=defaultUnitFor(this.value); renderRecetaRows();">'+
+        STATE.insumos.map(i=>'<option value="'+i.id+'" '+(i.id===l.insumoId?'selected':'')+'>'+esc(i.nombre)+'</option>').join('')+
+      '</select>'+
+      '<input type="number" min="0.001" step="0.001" value="'+l.cantidad+'" placeholder="Cantidad" onchange="recetaTempLines['+idx+'].cantidad=this.value;">'+
+      '<select onchange="recetaTempLines['+idx+'].unidad=this.value;">'+
+        opciones.map(u=>'<option value="'+u+'" '+(u===l.unidad?'selected':'')+'>'+u+'</option>').join('')+
+      '</select>'+
+      '<button type="button" class="btn btn-sm btn-ghost" onclick="recetaTempLines.splice('+idx+',1);renderRecetaRows();">✕</button>'+
+    '</div>';
+  }).join('') || '<div class="small muted" style="margin-bottom:8px;">Todavía no agregaste ingredientes.</div>';
+}
+function defaultUnitFor(insumoId){
+  const insumo = getInsumo(insumoId);
+  if(!insumo) return 'unidad';
+  return unitOptionsFor(UNITS[insumo.unidadCompra].tipo)[0];
+}
+function addRecetaRow(){
+  if(!STATE.insumos.length){ toast('Primero cargá al menos un insumo.', 'error'); return; }
+  const first = STATE.insumos[0];
+  recetaTempLines.push({insumoId:first.id, cantidad:0, unidad:defaultUnitFor(first.id)});
+  renderRecetaRows();
+}
+
+/* ---------------- MODAL: COSTO INDIRECTO ---------------- */
+function openCostoIndModal(id){
+  const ci = id ? STATE.costosIndirectos.find(c=>c.id===id) : null;
+  const html = ''+
+    '<form id="formCostoInd"><div class="form-grid">'+
+      '<div class="field"><label>Nombre</label><input required name="nombre" value="'+(ci?esc(ci.nombre):'')+'" placeholder="Gas, Electricidad, Alquiler, Mano de obra..."></div>'+
+      '<div class="field"><label>Monto</label><input required class="money-input" inputmode="decimal" name="monto" value="'+(ci?moneyDisplayValue(ci.monto):'')+'"></div>'+
+      '<div class="field"><label>Período</label><input name="periodo" value="'+(ci?esc(ci.periodo||''):'')+'" placeholder="Mensual, semanal..."></div>'+
+      '<div class="field"><label>Asignación</label><select name="asignacion" id="asignSelect" onchange="toggleAsignFields()">'+
+        '<option value="general">Gasto general (no se asigna a un producto)</option>'+
+        '<option value="producto">Se asigna a un producto</option>'+
+        '<option value="distribuido">Se distribuye entre varios productos</option>'+
+      '</select></div>'+
+      '<div class="field" id="unidadesField"><label>Unidades de producto que representa</label><input type="number" min="0" step="1" name="unidadesEstimadas" value="'+(ci?ci.unidadesEstimadas:'')+'"></div>'+
+      '<div class="field full" id="productosField"><label>Producto(s)</label><select multiple name="productoIds" style="min-height:90px;">'+
+        STATE.productos.map(p=>'<option value="'+p.id+'" '+((ci&&ci.productoIds||[]).includes(p.id)?'selected':'')+'>'+esc(p.nombre)+'</option>').join('')+
+      '</select></div>'+
+    '</div><div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div></form>';
+  openModalRaw(ci?'Editar costo indirecto':'Nuevo costo indirecto', html);
+  if(ci) document.getElementById('asignSelect').value = ci.asignacion;
+  toggleAsignFields();
+  document.getElementById('formCostoInd').addEventListener('submit', e=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+    data.productoIds = Array.from(e.target.querySelector('[name=productoIds]').selectedOptions).map(o=>o.value);
+    data.monto = parseMoneyInput(data.monto);
+    if(data.asignacion!=='general' && !data.productoIds.length){ toast('Seleccioná al menos un producto.', 'error'); return; }
+    if(ci) editarCostoIndirecto(id, data); else crearCostoIndirecto(data);
+    saveState(); closeModal(); renderCostos(); renderProductos();
+    toast('Costo indirecto guardado', 'success');
+  });
+}
+function toggleAsignFields(){
+  const v = document.getElementById('asignSelect').value;
+  document.getElementById('unidadesField').style.display = v==='general' ? 'none' : 'flex';
+  document.getElementById('productosField').style.display = v==='general' ? 'none' : 'flex';
+}
+</script>
+<script>
+/* ---------------- MODAL: VENTA ---------------- */
+function openVentaModal(){
+  if(!STATE.productos.length){ toast('Primero cargá al menos un producto.', 'error'); return; }
+  const html = ''+
+    '<form id="formVenta"><div class="form-grid">'+
+      '<div class="field"><label>Producto</label><select required name="productoId" id="ventaProductoSel" onchange="onVentaProductoChange()">'+
+        STATE.productos.map(p=>'<option value="'+p.id+'" data-precio="'+p.precioVenta+'">'+esc(p.nombre)+'</option>').join('')+
+      '</select></div>'+
+      '<div class="field"><label>Fecha</label><input required type="date" name="fecha" value="'+todayStr()+'"></div>'+
+      '<div class="field"><label>Cantidad</label><input required type="number" min="1" step="1" name="cantidad" value="1"></div>'+
+      '<div class="field"><label>Precio unitario</label><input required class="money-input" inputmode="decimal" name="precioUnitario" id="ventaPrecioInput"></div>'+
+      '<div class="field"><label>Descuento <span class="opt">(monto, opcional)</span></label><input class="money-input" inputmode="decimal" name="descuento" value="0"></div>'+
+      '<div class="field"><label>Medio de pago</label><select name="medioPago"><option>Efectivo</option><option>Transferencia</option><option>Tarjeta</option><option>Otro</option></select></div>'+
+      '<div class="field"><label>Cliente <span class="opt">(opcional)</span></label><input name="cliente"></div>'+
+      '<div class="field full"><label>Observaciones <span class="opt">(opcional)</span></label><textarea name="observaciones"></textarea></div>'+
+    '</div><div id="ventaPreview" class="hint-box"></div>'+
+    '<div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Registrar venta</button></div></form>';
+  openModalRaw('Nueva venta', html);
+  onVentaProductoChange();
+  const form = document.getElementById('formVenta');
+  form.addEventListener('input', updateVentaPreview);
+  form.addEventListener('submit', e=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.precioUnitario = parseMoneyInput(data.precioUnitario);
+    data.descuento = parseMoneyInput(data.descuento);
+    if(num(data.cantidad)<=0){ toast('La cantidad debe ser mayor a cero.', 'error'); return; }
+    if(data.precioUnitario<0){ toast('El precio no puede ser negativo.', 'error'); return; }
+    const producto = getProducto(data.productoId);
+    const costo = costoTotalUnitario(producto);
+    if(data.precioUnitario < costo){
+      if(!confirmar('El precio de venta ('+fmtMoney(data.precioUnitario)+') es menor al costo ('+fmtMoney(costo)+'). ¿Registrar la venta igualmente?')) return;
+    }
+    registrarVenta(data);
+    saveState(); closeModal(); renderVentas(); renderInsumos();
+    toast('Venta registrada', 'success');
+  });
+}
+function onVentaProductoChange(){
+  const sel = document.getElementById('ventaProductoSel');
+  document.getElementById('ventaPrecioInput').value = moneyDisplayValue(num(sel.selectedOptions[0].dataset.precio));
+  updateVentaPreview();
+}
+function updateVentaPreview(){
+  const form = document.getElementById('formVenta');
+  const producto = getProducto(form.productoId.value);
+  const cantidad = num(form.cantidad.value), precio = parseMoneyInput(form.precioUnitario.value), desc = parseMoneyInput(form.descuento.value);
+  const total = round2(cantidad*precio-desc);
+  const costo = costoTotalUnitario(producto)*cantidad;
+  const ganancia = round2(total-costo);
+  document.getElementById('ventaPreview').innerHTML = 'Total: <b>'+fmtMoney(total)+'</b> &nbsp;|&nbsp; Costo estimado: <b>'+fmtMoney(round2(costo))+'</b> &nbsp;|&nbsp; Ganancia: <b style="color:'+(ganancia>=0?'var(--green)':'var(--red)')+'">'+fmtMoney(ganancia)+'</b>';
+}
+
+/* ---------------- MODAL: GASTO ---------------- */
+function openGastoModal(){
+  const categorias = ['Gas','Electricidad','Agua','Alquiler','Transporte','Mantenimiento','Mano de obra','Publicidad','Otros'];
+  const html = ''+
+    '<form id="formGasto"><div class="form-grid">'+
+      '<div class="field"><label>Categoría</label><select name="categoria">'+categorias.map(c=>'<option>'+c+'</option>').join('')+'</select></div>'+
+      '<div class="field"><label>Fecha</label><input required type="date" name="fecha" value="'+todayStr()+'"></div>'+
+      '<div class="field"><label>Importe</label><input required class="money-input" inputmode="decimal" name="importe" placeholder="0,00"></div>'+
+      '<div class="field"><label>Medio de pago</label><select name="medioPago"><option>Efectivo</option><option>Transferencia</option><option>Tarjeta</option><option>Otro</option></select></div>'+
+      '<div class="field full"><label>Descripción <span class="opt">(opcional)</span></label><input name="descripcion"></div>'+
+    '</div><div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Registrar gasto</button></div></form>';
+  openModalRaw('Nuevo gasto', html);
+  document.getElementById('formGasto').addEventListener('submit', e=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    data.importe = parseMoneyInput(data.importe);
+    if(data.importe<=0){ toast('El importe debe ser mayor a cero.', 'error'); return; }
+    registrarGasto(data);
+    saveState(); closeModal(); renderGastos();
+    toast('Gasto registrado', 'success');
+  });
+}
+
+/* ---------------- MODAL: SALDO INICIAL (APERTURA) ---------------- */
+function openSaldoInicialModal(){
+  const html = ''+
+    '<div class="modal-sub">Registra el dinero con el que arrancás a usar el sistema. Genera un asiento contra la cuenta Capital. Podés cargar uno de los dos montos, o los dos.</div>'+
+    '<form id="formSaldoInicial"><div class="form-grid">'+
+      '<div class="field"><label>Saldo inicial en Efectivo (Caja)</label><input class="money-input" inputmode="decimal" name="efectivo" placeholder="0,00"></div>'+
+      '<div class="field"><label>Saldo inicial en Banco (Transferencia)</label><input class="money-input" inputmode="decimal" name="banco" placeholder="0,00"></div>'+
+      '<div class="field full"><label>Fecha</label><input required type="date" name="fecha" value="'+todayStr()+'"></div>'+
+    '</div><div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar saldo inicial</button></div></form>';
+  openModalRaw('Cargar saldo inicial', html);
+  document.getElementById('formSaldoInicial').addEventListener('submit', e=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    const efectivo = parseMoneyInput(data.efectivo);
+    const banco = parseMoneyInput(data.banco);
+    if(efectivo<=0 && banco<=0){ toast('Ingresá al menos un monto mayor a cero.', 'error'); return; }
+    const movs = [];
+    if(efectivo>0) movs.push({cuentaId:'caja', debe:efectivo, haber:0});
+    if(banco>0) movs.push({cuentaId:'banco', debe:banco, haber:0});
+    movs.push({cuentaId:'capital', debe:0, haber:round2(efectivo+banco)});
+    const res = addAsiento(data.fecha, 'Saldo inicial de apertura', movs);
+    if(res){ saveState(); closeModal(); renderCuentas(); toast('Saldo inicial cargado', 'success'); }
+  });
+}
+
+/* ---------------- SELECT DE CATEGORÍAS (con opción de agregar nueva) ---------------- */
+function categoriasInsumoList(){
+  const base = ['Materia prima','Packaging','Envases','Otro'];
+  const existentes = STATE.insumos.map(i=>i.categoria).filter(Boolean);
+  return Array.from(new Set([...base, ...existentes]));
+}
+function categoriasProductoList(){
+  const base = ['Panificados','Facturas','Otro'];
+  const existentes = STATE.productos.map(p=>p.categoria).filter(Boolean);
+  return Array.from(new Set([...base, ...existentes]));
+}
+function categorySelectHtml(selectId, opciones, current){
+  const hayActual = current && !opciones.includes(current);
+  return '<select id="'+selectId+'" onchange="onCategorySelectChange(\''+selectId+'\')">'+
+    opciones.map(o=>'<option value="'+esc(o)+'" '+(o===current?'selected':'')+'>'+esc(o)+'</option>').join('')+
+    (hayActual?('<option value="'+esc(current)+'" selected>'+esc(current)+'</option>'):'')+
+    '<option value="__new__">+ Agregar nueva categoría...</option>'+
+    '</select>'+
+    '<input type="text" id="'+selectId+'_new" placeholder="Escribí la nueva categoría" style="display:none;margin-top:6px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;">';
+}
+function onCategorySelectChange(selectId){
+  const sel = document.getElementById(selectId);
+  const newInput = document.getElementById(selectId+'_new');
+  newInput.style.display = sel.value==='__new__' ? 'block' : 'none';
+  if(sel.value==='__new__') newInput.focus();
+}
+function categorySelectValue(selectId){
+  const sel = document.getElementById(selectId);
+  if(sel.value==='__new__') return document.getElementById(selectId+'_new').value.trim();
+  return sel.value;
+}
+
+/* ---------------- MODAL: CUENTA ---------------- */
+function openCuentaModal(id){
+  const cuenta = id ? getCuenta(id) : null;
+  const tipos = ['activo','pasivo','patrimonio','ingreso','costo','gasto'];
+  const html = ''+
+    '<form id="formCuenta"><div class="form-grid">'+
+      '<div class="field full"><label>Nombre de la cuenta</label><input required name="nombre" value="'+(cuenta?esc(cuenta.nombre):'')+'"></div>'+
+      '<div class="field full"><label>Tipo</label><select name="tipo" '+(cuenta&&cuenta.sistema?'disabled':'')+'>'+
+        tipos.map(t=>'<option value="'+t+'" '+(cuenta&&cuenta.tipo===t?'selected':'')+'>'+t+'</option>').join('')+'</select>'+
+        (cuenta&&cuenta.sistema?'<div class="small muted" style="margin-top:4px;">El tipo de las cuentas del sistema no puede cambiarse.</div>':'')+
+      '</div>'+
+    '</div><div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div></form>';
+  openModalRaw(cuenta?'Editar cuenta':'Nueva cuenta', html);
+  document.getElementById('formCuenta').addEventListener('submit', e=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    if(cuenta) editarCuenta(id,data); else crearCuenta(data);
+    saveState(); closeModal(); renderCuentas();
+    toast('Cuenta guardada', 'success');
+  });
+}
+
+/* ---------------- MODAL: ASIENTO MANUAL ---------------- */
+let asientoManualLines = [{cuentaId:'', debe:0, haber:0},{cuentaId:'', debe:0, haber:0}];
+function openAsientoManualModal(){
+  asientoManualLines = [{cuentaId:STATE.cuentas[0].id, debe:0, haber:0},{cuentaId:STATE.cuentas[0].id, debe:0, haber:0}];
+  const html = ''+
+    '<div class="modal-sub">Usalo para operaciones especiales. El sistema no permite guardar si el Debe y el Haber no coinciden.</div>'+
+    '<form id="formAsiento">'+
+    '<div class="form-grid"><div class="field"><label>Fecha</label><input required type="date" name="fecha" value="'+todayStr()+'"></div>'+
+    '<div class="field"><label>Descripción</label><input required name="descripcion"></div></div>'+
+    '<div class="divider"></div><div id="asientoLines"></div>'+
+    '<button type="button" class="btn btn-sm" onclick="asientoManualLines.push({cuentaId:STATE.cuentas[0].id,debe:0,haber:0});renderAsientoLines();">+ Agregar línea</button>'+
+    '<div id="asientoTotales" class="hint-box" style="margin-top:12px;"></div>'+
+    '<div class="formfoot"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar asiento</button></div></form>';
+  openModalRaw('Nuevo asiento manual', html);
+  renderAsientoLines();
+  document.getElementById('formAsiento').addEventListener('submit', e=>{
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    const movs = asientoManualLines.filter(l=>num(l.debe)>0 || num(l.haber)>0);
+    if(movs.length<2){ toast('Un asiento necesita al menos dos líneas.', 'error'); return; }
+    const res = addAsiento(data.fecha, data.descripcion, movs);
+    if(res){ saveState(); closeModal(); renderDiario(); renderMayor(); toast('Asiento registrado', 'success'); }
+  });
+}
+function renderAsientoLines(){
+  const wrap = document.getElementById('asientoLines');
+  wrap.innerHTML = asientoManualLines.map((l,idx)=>
+    '<div class="recipe-row" style="grid-template-columns:2fr 1fr 1fr auto;">'+
+    '<select onchange="asientoManualLines['+idx+'].cuentaId=this.value;">'+
+      STATE.cuentas.map(c=>'<option value="'+c.id+'" '+(c.id===l.cuentaId?'selected':'')+'>'+esc(c.nombre)+'</option>').join('')+
+    '</select>'+
+    '<input class="money-input" inputmode="decimal" placeholder="Debe" value="'+(l.debe?moneyDisplayValue(l.debe):'')+'" oninput="asientoManualLines['+idx+'].debe=parseMoneyInput(this.value); if(parseMoneyInput(this.value)>0){asientoManualLines['+idx+'].haber=0;} updateAsientoTotales();">'+
+    '<input class="money-input" inputmode="decimal" placeholder="Haber" value="'+(l.haber?moneyDisplayValue(l.haber):'')+'" oninput="asientoManualLines['+idx+'].haber=parseMoneyInput(this.value); if(parseMoneyInput(this.value)>0){asientoManualLines['+idx+'].debe=0;} updateAsientoTotales();">'+
+    '<button type="button" class="btn btn-sm btn-ghost" onclick="asientoManualLines.splice('+idx+',1);renderAsientoLines();">✕</button>'+
+    '</div>'
+  ).join('');
+  updateAsientoTotales();
+}
+function updateAsientoTotales(){
+  const debe = round2(asientoManualLines.reduce((a,l)=>a+num(l.debe),0));
+  const haber = round2(asientoManualLines.reduce((a,l)=>a+num(l.haber),0));
+  const ok = debe===haber;
+  document.getElementById('asientoTotales').innerHTML = 'Total Debe: <b>'+fmtMoney(debe)+'</b> &nbsp; Total Haber: <b>'+fmtMoney(haber)+'</b> &nbsp; '+
+    (ok?'<span style="color:var(--green);font-weight:700;">✓ Balanceado</span>':'<span style="color:var(--red);font-weight:700;">⚠ No balanceado</span>');
+}
+</script>
+<script>
+/* ---------------- INIT ---------------- */
+document.querySelectorAll('.navitem').forEach(btn=>{
+  btn.addEventListener('click', ()=>showView(btn.dataset.view));
+});
+document.getElementById('btnQuickBackup').addEventListener('click', exportBackup);
+document.getElementById('importFile').addEventListener('change', e=>{
+  if(e.target.files[0]) importBackupFile(e.target.files[0]);
+  e.target.value = '';
+});
+document.getElementById('yearNow').textContent = new Date().getFullYear();
+
+seedDataIfNeeded();
+saveState();
+
+document.addEventListener('change', e=>{
+  if(e.target && e.target.id==='mayorCuentaSelect') renderMayorTable();
+});
+
+showView('dashboard');
+</script>
+</body>
+</html>
